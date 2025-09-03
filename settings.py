@@ -1,13 +1,8 @@
 class S: 
     """ Streetview Properties """
-    standard_wait = .5                  # Add more time between actions (useful on slow internet)
-    hide_browser = False                # Launch browser?
-    browser_width = 1020                # Width of the viewport
-    browser_height = 1020               # Height of the viewport
-    press_time = .6                     # The amount of time keys are pressed down for
     secondary_boost = .35               # How much of the secondary amenities' scores are kept 
     num_classes = 5
-    yolo_path = "assets/best.pt"
+    yolo_path = "assets/YOLO.pt"
 
     """ RL Properties """
     img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 
