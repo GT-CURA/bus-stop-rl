@@ -71,8 +71,9 @@
           heading: bestLink.heading,
           pano_id: bestLink.pano
         };
-
-        console.log(JSON.stringify(result));  // Playwright will intercept this
+        
+        // Playwright will intercept this
+        console.log(JSON.stringify(result));
       } catch (e) {
         console.error("Error:", e.message);
       }

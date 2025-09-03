@@ -63,10 +63,10 @@ def train(save_path: str, load_path = None):
     # Save model, close gym
     model.save(save_path)
 
-def infer(env: StreetViewEnv, model_path: str, num_stops = 20):
+def infer(env: StreetViewEnv, model_path = "assets/PPO", num_stops = 20):
     # Wrap environment just like in 2training
-    vec_env = DummyVecEnv([lambda: env])
-    vec_env = VecFrameStack(vec_env, n_stack=4)
+    vec_env = DummyVecEnv([make_env])
+    vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Load the model
     model = PPO.load(model_path, env=vec_env)
@@ -80,5 +80,5 @@ def infer(env: StreetViewEnv, model_path: str, num_stops = 20):
             obs, reward, done, _, info = vec_env.step(action)
 
 if __name__ == "__main__":
-    train("models/PPO", "PPO_11250_steps")
+    train("models/PPO", "assets/PPO")
     # infer(vec_env, "models/PPO")
