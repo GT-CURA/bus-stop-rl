@@ -11,18 +11,6 @@ class Misc:
         img = np.transpose(img, (2, 0, 1))
         return img 
 
-    def extract_pos(url:str):
-        # Match @<lat>,<lon>,[2-3]a,<zoom>y,<heading>h
-        match = re.search(r"@(-?\d+\.\d+),(-?\d+\.\d+),[23]a,([\d.]+)y,([\d.]+)h", url)
-        if match:
-            latitude = float(match.group(1))
-            longitude = float(match.group(2))
-            zoom = float(match.group(3))
-            heading = float(match.group(4))
-            return latitude, longitude, zoom, heading
-        else:
-            raise ValueError("Could not extract position from URL")
-
     def haversine(lat1, lon1, lat2, lon2):
         """ Implementation of the haversine formula to obtain distance from initial to new cords. """
         R = 6371000

@@ -38,12 +38,12 @@ class StreetViewEnv(gym.Env):
         stop = self.stop_loader.load_stop()
 
         # Create new episode
-        self.episode = Episode(stop, self.sv.page.url, self.stop_detector, self.log_manager)
+        self.episode = Episode(stop, self.sv.page.url, self.stop_detector, self.log_manager, self.sv.current_pic)
         
         # Set up screenshot stack 
         img = self.sv.get_img()
         yolo_output = self.stop_detector.run(img)
-        features = self.episode.get_features(img, yolo_output, self.sv.page.url)
+        features = self.episode.get_features(img, yolo_output, self.sv.current_pic)
 
         # Reset episode-specific vars
         self.reset_next = False
@@ -69,13 +69,13 @@ class StreetViewEnv(gym.Env):
         img = self.sv.get_img() 
 
         # Udate episode, let it score etc.
-        obs, reward, done = self.episode.update(key, img, self.sv.page.url)
+        obs, reward, done = self.episode.update(key, img, self.sv.current_pic)
         
         return obs, reward, done, False, {"raw_reward": reward}
 
 # Class for storing episode data
 class Episode():
-    def __init__(self, stop, url: str, stop_detector: StopDetector, log_manager: LogManager):
+    def __init__(self, stop, url: str, stop_detector: StopDetector, log_manager: LogManager, pic):
         self.log = []
         self.reward = 0.0
         self.steps = 0
@@ -92,14 +92,14 @@ class Episode():
         self.zoom_amt = 0
         
         # Determine geo info
-        self.initial_lat, self.initial_lon, self.initial_heading, zoom = Misc.extract_pos(url)
+        self.initial_lat, self.initial_lon, self.initial_heading = pic.lat, pic.lng, pic.heading
 
-    def get_features(self, img, output, url: str):
+    def get_features(self, img, output, pic):
         # Get features, bb info from stop detector
         yolo_feats, found = self.stop_detector.extract_features(img, output)
 
         # Get spatial info from SV URL
-        lat, lon, heading, zoom = Misc.extract_pos(url)
+        lat, lon, heading = pic.lat, pic.lng, pic.heading
         
         # Calculate diff between initial and new lats
         delta_lat = lat - self.initial_lat
@@ -148,7 +148,7 @@ class Episode():
         # Concat features
         return np.concat([yolo_feats, spatial_vec])
 
-    def update(self, key, img, url):
+    def update(self, key, img, pic):
         # Update steps
         self.steps += 1 
 
@@ -167,7 +167,7 @@ class Episode():
         conf, found, boxes, box_sz = self.stop_detector.score_output(output)
         
         # Extract features from observation
-        features = self.get_features(img, output, url)
+        features = self.get_features(img, output, pic)
 
         # See if this episode is finished
         done = False

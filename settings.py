@@ -1,8 +1,12 @@
 class S: 
     """ Streetview Properties """
-    secondary_boost = .35               # How much of the secondary amenities' scores are kept 
+    show_imgs = True                    # Whether to display images
+    wait_time = 2                       # How long to wait between images
+
+    """ YOLO Properties"""
     num_classes = 5
     yolo_path = "assets/YOLO.pt"
+    secondary_boost = .35               # How much of the secondary amenities' scores are kept 
 
     """ RL Properties """
     img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 

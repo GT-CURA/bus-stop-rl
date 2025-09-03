@@ -48,8 +48,7 @@ class StopFeatureExtractor(BaseFeaturesExtractor):
         )
 
     def forward(self, obs):
-        frame_dim = S.features_dim + self.bb_dim + S.geo_dim
-        obs = obs.view(-1, S.stack_sz, frame_dim)
+        obs = obs.view(-1, S.stack_sz, S.frame_dim)
 
         # Pull each section of observation out 
         yolo_feats = obs[:, :, :S.features_dim]

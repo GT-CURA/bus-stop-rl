@@ -1,14 +1,15 @@
 from dataclasses import dataclass
 import requests 
-from stop import Stop
+from resources.stop import Stop
 from playwright.sync_api import sync_playwright
 import json
 from settings import S
 import cv2
 import numpy as np
 import math
+from time import sleep
 
-class Streetview:
+class StreetView:
     def __init__(self):
         self.key: str
         self.reqs: Requests
@@ -28,7 +29,7 @@ class Streetview:
         self.page = browser.new_page()
 
         # Set key
-        html_content = open("link_fetcher.html").read()
+        html_content = open("resources\link_fetcher.html").read()
         html_with_key = html_content.replace(key, "")
         self.page.set_content(html_with_key)
 
@@ -50,11 +51,17 @@ class Streetview:
 
         # Pull image
         self.current_img = self.reqs.pull_image(self.current_pic)
+        return True
 
     def get_img(self, save_path=None):
         """ Load bytes from streetview into CV2 image. """
         nparr = np.frombuffer(self.current_img, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        # Wait and then show image
+        if S.show_imgs:
+            cv2.imshow("Bus Stop RL", img)
+            cv2.waitKey(S.wait_time)
         return img
 
     def do_action(self, action):
@@ -73,7 +80,7 @@ class Streetview:
 
         # Move backwards    
         elif action == 's':
-            self._move('a')
+            self._move('s')
         
         # Pull new pic
         self.current_img = self.reqs.pull_image(self.current_pic)

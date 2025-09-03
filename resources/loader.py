@@ -1,8 +1,6 @@
 from settings import S 
 import json
 from random import sample, shuffle, randint
-from resources.streetview import StreetView
-import time
 from resources.stop import Stop
 
 class StopLoader:
@@ -65,16 +63,11 @@ class StopLoader:
 
         # Build point, try to navigate to it
         loaded = self.sv.goto_pt(stop)
-        time.sleep(1 + S.standard_wait)
 
         # If we couldn't load the stop, re-run function
         if not loaded: 
             self.load_stop()
             return stop
-
-        # Make streetview accept input
-        if wiggle_mouse:
-            self.sv.wiggle_mouse()
 
         # If stop is a positive, scramble
         if not stop.false_negative:
