@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Link Fetcher</title>
+  <meta charset="utf-8">
+  <script src="https://maps.googleapis.com/maps/api/js?key=KEY_HERE"></script>
+</head>
+<body>
+  <script>
+    /**
+     * Main function to find the next panorama in a given direction.
+     * @param {number} lat - Current latitude.
+     * @param {number} lng - Current longitude.
+     * @param {number} currentHeading - Current heading in degrees.
+     * @param {'w'|'s'} direction - Desired direction.
+     */
+    async function findNextPano(lat, lng, currentHeading, direction) {
+      const svService = new google.maps.StreetViewService();
+
+      function getPanoramaAtLocation(lat, lng) {
+        return new Promise((resolve, reject) => {
+          svService.getPanorama({ location: { lat, lng }, radius: 50 }, (data, status) => {
+            if (status === 'OK') resolve(data);
+            else reject(new Error("No pano found"));
+          });
+        });
+      }
+
+      function getPanoramaById(panoId) {
+        return new Promise((resolve, reject) => {
+          svService.getPanorama({ pano: panoId }, (data, status) => {
+            if (status === 'OK') resolve(data);
+            else reject(new Error("Next pano not found"));
+          });
+        });
+      }
+
+      try {
+        const data = await getPanoramaAtLocation(lat, lng);
+        const links = data.links;
+
+        if (!links || links.length === 0) throw new Error("No links found");
+
+        // Determine target heading based on direction
+        let targetHeading = currentHeading;
+        if (direction === "s") {
+          targetHeading = (currentHeading + 180) % 360;
+        }
+
+        // Find the closest link to the target heading
+        let bestLink = null;
+        let minDiff = 360;
+        for (const link of links) {
+          let diff = Math.abs(link.heading - targetHeading);
+          if (diff > 180) diff = 360 - diff;
+          if (diff < minDiff) {
+            minDiff = diff;
+            bestLink = link;
+          }
+        }
+
+        if (!bestLink) throw new Error("No suitable pano link found");
+
+        const nextData = await getPanoramaById(bestLink.pano);
+        const loc = nextData.location.latLng;
+
+        // Output result as a stringified object
+        const result = {
+          lat: loc.lat(),
+          lng: loc.lng(),
+          heading: bestLink.heading,
+          pano_id: bestLink.pano
+        };
+
+        console.log(JSON.stringify(result));  // Playwright will intercept this
+      } catch (e) {
+        console.error("Error:", e.message);
+      }
+    }
+
+    // The Playwright script will inject values here:
+    window.findNextPano = findNextPano;
+  </script>
+</body>
+</html>
