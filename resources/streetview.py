@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 import math
 from time import sleep
+import queue
+from threading import Thread
 
 class StreetView:
     def __init__(self):
@@ -32,6 +34,11 @@ class StreetView:
         html_content = open("resources\link_fetcher.html").read()
         html_with_key = html_content.replace(key, "")
         self.page.set_content(html_with_key)
+
+        # Start display queue
+        self.display_queue = queue.Queue()
+        display_thread = Thread(target=self.display_loop)
+        display_thread.start()
 
     def goto_pt(self, stop: Stop):
         """ Used by loader class to pull initial image of point. """
@@ -60,8 +67,8 @@ class StreetView:
 
         # Wait and then show image
         if S.show_imgs:
-            cv2.imshow("Bus Stop RL", img)
-            cv2.waitKey(S.wait_time)
+            self.display_queue.put(img.copy())
+            sleep(S.wait_time) 
         return img
 
     def do_action(self, action):
@@ -140,6 +147,13 @@ class StreetView:
         heading = math.degrees(heading)
         heading = (heading + 360) % 360
         pic.heading = heading
+
+    def display_loop(self):
+        while True:
+            img = self.display_queue.get()
+            if img is None: break
+            cv2.imshow("Bus Stop Find", img)
+            cv2.waitKey(1)
 
 @dataclass
 class Error:
