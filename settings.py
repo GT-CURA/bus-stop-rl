@@ -16,8 +16,9 @@ class S:
     dampen_scalor = .6                  # How much each score is dampened by
     premature_end = -.7                 # The 'punishment' score model receives for ending early
     consecutive_boost = .2              # How much the model is rewarded for multiple pics of the stop
-    spacebar_penalty = .2               # Model is punished per spacebar press after allowed number of presseses
-    free_steps_after_found = 5          # Start heavily punishing model after this many steps since finding stop
+    free_spacebar_presses = 2           # How many times the model can return to start (press spacebar) before being punished
+    spacebar_penalty = .3               # Model is punished per spacebar press after allowed number of presseses
+    free_steps_after_found = 7          # Start heavily punishing model after this many steps since finding stop
     max_steps_after_found = 20          # The number of steps after "found" that the model is allowed before forcibly moving on
     after_found_punishment = .15        # How much to punish model per step after ^
     move_on_reward = .1                 # Points model gets for successfully moving to next episode
@@ -50,7 +51,7 @@ class S:
     """ Don't Touch """
     bb_dim = 4                          # Vector containing bounding box cords, area, class
     features_dim = 512                  # Vector containing YOLO features
-    geo_dim = 8                         # Vector containing lat/lon
+    geo_dim = 9                         # Vector containing lat/lon
     frame_dim = features_dim + bbs_kept * (bb_dim + num_classes) + geo_dim
     from datetime import datetime
     log_dir = f"{save_folder}/{datetime.now().strftime('%m-%d_%H-%M-%S')}/"

@@ -104,7 +104,7 @@ class StreetView:
     def set_start(self):
         """ Basically tells class to reset. """
         self.start_stop = self.current_stop
-    
+
     def _move(self, direction='w'):
         result = {}
 
