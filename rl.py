@@ -133,6 +133,10 @@ class Episode():
         # Provide steps after found
         remaining_steps = min(self.steps_since_found / S.free_steps_after_found, 1)
 
+        
+        # Provide spacebar presses 
+        spacebar_presses = min(self.space_presses / S.free_spacebar_presses, 1)
+
         # Put all into a vec 
         spatial_vec = np.array([
             delta_lat,
@@ -142,7 +146,8 @@ class Episode():
             heading_cos,
             zoom_scaled,
             viewpoint_count,
-            remaining_steps
+            remaining_steps,
+            spacebar_presses
         ], dtype=np.float32)
 
         # Concat features
@@ -213,7 +218,21 @@ class Episode():
         if not found and not self.found:
             if self.steps <= S.min_steps:
                 return S.premature_end, False
+            
+        # If found, don't allow without multiple perspectives (unless surpassed free steps)
+        elif len(self.found_viewpoints) < 2:
+            if self.steps_since_found > S.free_steps_after_found:
+                return -.3, True
+            else:
+                return -.4, False
         
+        # Base move on reward
+        reward = S.move_on_reward
+
+        # Reward moving on before using all free steps
+        if self.found and self.steps_since_found <= S.free_steps_after_found:
+            reward += S.efficiency_bonus
+
         # Write "best" image
         if self.best_img and S.save_screenshots:
             stop_name = self.stop.place_name.replace("/", "-")
@@ -224,7 +243,7 @@ class Episode():
             results.save(filename=f"{S.log_dir}/{stop_name}_labeled.jpg")
         
         # Tell model to finish this episode
-        return S.move_on_reward, True
+        return reward, True
 
     def score(self, conf, key, found, box_sz):
         """ Determines penalties and rewards based on episode data. """
@@ -248,7 +267,8 @@ class Episode():
 
         # Prevent spacebar spamming
         if key == "Key.space":
-            reward -= S.spacebar_penalty * self.space_presses 
+            if self.space_presses > S.free_spacebar_presses:
+                reward -= S.spacebar_penalty * self.space_presses 
 
         # Add bonus if already found
         if found and self.found:
