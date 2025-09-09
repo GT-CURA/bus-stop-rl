@@ -1,14 +1,22 @@
-# SB3 & misc
+# SB3 & Flask
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.logger import configure
 from stable_baselines3 import PPO
-from resources.custom_policies import StopMLPPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
+from flask import Flask, render_template
+from threading import Thread
 
 # Project moduless
+from resources.custom_policies import StopMLPPolicy
 from rl import StreetView, StreetViewEnv
 from settings import S 
 from resources.loader import StopLoader
+
+# Setup flask app 
+app = Flask(__name__)
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 def make_env():
     sv = StreetView()
@@ -80,5 +88,8 @@ def infer(env: StreetViewEnv, model_path = "assets/PPO", num_stops = 20):
             obs, reward, done, _, info = vec_env.step(action)
 
 if __name__ == "__main__":
-    train("models/PPO", "assets/PPO")
+    flask_thread = Thread(target=lambda: app.run(debug=False, use_reloader=False))
+    flask_thread.start()
+
+    train("models/PPO")
     # infer(vec_env, "models/PPO")

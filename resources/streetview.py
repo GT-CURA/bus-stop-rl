@@ -7,9 +7,6 @@ from settings import S
 import cv2
 import numpy as np
 import math
-from time import sleep
-from threading import Thread
-from pathlib import Path
 
 class StreetView:
     def __init__(self):
@@ -59,6 +56,7 @@ class StreetView:
         """ Load bytes from streetview into CV2 image. """
         nparr = np.frombuffer(self.current_img, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        cv2.imwrite("static/frame.jpg", img)
         return img
 
     def do_action(self, action):
@@ -126,6 +124,9 @@ class StreetView:
             lng=None,
         )
         self.current_pic.pano_id = pano_id_result.get("pano_id")
+
+        # Get coordinates through metadata call
+        self.reqs.pull_pano_info(self.current_pic)
 
     
     def _estimate_heading(self, pic, stop: Stop):
@@ -218,9 +219,13 @@ class Requests:
         params = {
             'key': self.key,
             'return_error_code': True,
-            'location': pic.get_coords(),
         }
 
+        if pic.pano_id:
+            params['pano'] = pic.pano_id
+        else:
+            params['location'] = pic.get_coords()
+            
         # Send a request
         response = self._pull_response(
             params=params,
