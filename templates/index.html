@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Street View Viewer</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        img {
+            height: 100vh;
+            width: 100vw;
+            object-fit: contain; /* use 'cover' for zoom effect */
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <img id="streetview" src="/static/frame.jpg" alt="Street View">
+    <script>
+        setInterval(() => {
+            const img = document.getElementById("streetview");
+            const timestamp = new Date().getTime();
+            img.src = `/static/frame.jpg?time=${timestamp}`;
+        }, 1000);
+    </script>
+</body>
+</html>

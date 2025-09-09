@@ -9,45 +9,54 @@
   <script>
     /**
      * Main function to find the next panorama in a given direction.
-     * @param {number} lat - Current latitude.
-     * @param {number} lng - Current longitude.
-     * @param {number} currentHeading - Current heading in degrees.
+     * Can take either a panoId or a lat/lng pair.
+     * @param {number|null} lat - Current latitude (or null if using panoId).
+     * @param {number|null} lng - Current longitude (or null if using panoId).
+     * @param {number} currentHeading - Heading in degrees.
      * @param {'w'|'s'} direction - Desired direction.
+     * @param {string|null} panoId - Optional pano ID.
      */
-    async function findNextPano(lat, lng, currentHeading, direction) {
+    async function findNextPano(lat, lng, currentHeading, direction, panoId = null) {
       const svService = new google.maps.StreetViewService();
-
-      function getPanoramaAtLocation(lat, lng) {
-        return new Promise((resolve, reject) => {
-          svService.getPanorama({ location: { lat, lng }, radius: 50 }, (data, status) => {
-            if (status === 'OK') resolve(data);
-            else reject(new Error("No pano found"));
-          });
-        });
-      }
 
       function getPanoramaById(panoId) {
         return new Promise((resolve, reject) => {
           svService.getPanorama({ pano: panoId }, (data, status) => {
             if (status === 'OK') resolve(data);
-            else reject(new Error("Next pano not found"));
+            else reject(new Error("Pano by ID not found"));
+          });
+        });
+      }
+
+      function getPanoramaAtLocation(lat, lng) {
+        return new Promise((resolve, reject) => {
+          svService.getPanorama({ location: { lat, lng }, radius: 50 }, (data, status) => {
+            if (status === 'OK') resolve(data);
+            else reject(new Error("Pano by location not found"));
           });
         });
       }
 
       try {
-        const data = await getPanoramaAtLocation(lat, lng);
-        const links = data.links;
+        let data;
 
+        // Use panoId if provided, otherwise use lat/lng
+        if (panoId) {
+          data = await getPanoramaById(panoId);
+        } else {
+          data = await getPanoramaAtLocation(lat, lng);
+        }
+
+        const links = data.links;
         if (!links || links.length === 0) throw new Error("No links found");
 
-        // Determine target heading based on direction
+        // Determine desired heading (reverse for 's')
         let targetHeading = currentHeading;
-        if (direction === "s") {
+        if (direction === 's') {
           targetHeading = (currentHeading + 180) % 360;
         }
 
-        // Find the closest link to the target heading
+        // Find best-matching link
         let bestLink = null;
         let minDiff = 360;
         for (const link of links) {
@@ -59,27 +68,17 @@
           }
         }
 
-        if (!bestLink) throw new Error("No suitable pano link found");
+        if (!bestLink) throw new Error("No suitable link found");
 
-        // const nextData = await getPanoramaById(bestLink.pano);
-        // const loc = nextData.location.latLng;
-
-        // // Output result as a stringified object
-        // const result = {
-        //   lat: loc.lat(),
-        //   lng: loc.lng(),
-        //   heading: bestLink.heading,
-        //   pano_id: bestLink.pano
-        // };
-        
-        // Playwright will intercept this
+        // Output just the panoId (Playwright reads this)
         console.log(JSON.stringify(bestLink.pano));
-      } catch (e) {
-        console.error("Error:", e.message);
+
+      } catch (err) {
+        console.error("Error:", err.message);
       }
     }
 
-    // The Playwright script will inject values here:
+    // Expose for Playwright
     window.findNextPano = findNextPano;
   </script>
 </body>

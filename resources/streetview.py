@@ -8,7 +8,6 @@ import cv2
 import numpy as np
 import math
 from time import sleep
-import queue
 from threading import Thread
 from pathlib import Path
 
@@ -36,11 +35,6 @@ class StreetView:
         html_with_key = html_content.replace(key, "")
         self.page.set_content(html_with_key)
 
-        # Start display queue
-        self.display_queue = queue.Queue()
-        display_thread = Thread(target=self.display_loop)
-        display_thread.start()
-
     def goto_pt(self, stop: Stop):
         """ Used by loader class to pull initial image of point. """
         # If this is the initial use, define starting stop
@@ -65,11 +59,6 @@ class StreetView:
         """ Load bytes from streetview into CV2 image. """
         nparr = np.frombuffer(self.current_img, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-        # Wait and then show image
-        if S.show_imgs:
-            self.display_queue.put(img.copy())
-            sleep(S.wait_time) 
         return img
 
     def do_action(self, action):
@@ -107,29 +96,37 @@ class StreetView:
         self.start_stop = self.current_stop
 
     def _move(self, direction='w'):
-        result = {}
-        self.increment_api_counter()
-        # Capture JSON from console.log
+        pano_id_result = {}
+
         def handle_console(msg):
             try:
                 text = msg.text
-                if text.startswith("{"):
-                    data = json.loads(text)
-                    result.update(data)
+                # Strip quotes
+                if text.startswith('"') and text.endswith('"'):
+                    pano_id_result["pano_id"] = json.loads(text)
             except Exception:
                 pass
 
         self.page.on("console", handle_console)
 
-        #  Inject and run the JavaScript function
-        self.page.evaluate(f"""
-            window.findNextPano(
-            {self.current_pic.lat}, {self.current_pic.lng}, {self.current_pic.heading}, "{direction}");
-        """)
+        if self.current_pic.pano_id:
+            self.page.evaluate(f"""
+                window.findNextPano(null, null, {self.current_pic.heading}, "{direction}", "{self.current_pic.pano_id}");
+            """)
+        else:
+            self.page.evaluate(f"""
+                window.findNextPano(
+                {self.current_pic.lat}, {self.current_pic.lng}, {self.current_pic.heading}, "{direction}");
+            """)
 
-        # Build pic from result
-        self.current_pic = Pic(heading=self.current_pic.heading, lat=None, lng=None)
-        self.current_pic.pano_id = result
+        # Build new pic with pano_id
+        self.current_pic = Pic(
+            heading=self.current_pic.heading,
+            lat=None,
+            lng=None,
+        )
+        self.current_pic.pano_id = pano_id_result.get("pano_id")
+
     
     def _estimate_heading(self, pic, stop: Stop):
         """
@@ -149,33 +146,6 @@ class StreetView:
         heading = math.degrees(heading)
         heading = (heading + 360) % 360
         pic.heading = heading
-
-    def display_loop(self):
-        while True:
-            img = self.display_queue.get()
-            if img is None: break
-            cv2.imshow("Bus Stop Find", img)
-            cv2.waitKey(1)
-
-    def increment_api_counter(path="assets/api_calls.txt"):
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # If file exists, read and increment
-        if path.exists():
-            with open(path, "r+") as f:
-                try:
-                    count = int(f.read())
-                except ValueError:
-                    count = 0
-                count += 1
-                f.seek(0)
-                f.write(str(count))
-                f.truncate()
-        else:
-            # Create file and initialize to 1
-            with open(path, "w") as f:
-                f.write("1")
 @dataclass
 class Error:
     # I have OCD 
@@ -216,8 +186,13 @@ class Requests:
             'key': self.key,
             'return_error_code': True,
             'outdoor': True,
-            'size': f"{self.pic_len}x{self.pic_height}",
-            'location': pic.get_coords()}
+            'size': f"{self.pic_len}x{self.pic_height}"}
+
+        # Add either pano ID or location
+        if pic.pano_id:
+            pic_params['pano'] = pic.pano_id
+        else:
+            pic_params['location'] = pic.get_coords()
 
         # Add heading if there is any
         if pic.heading:
