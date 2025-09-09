@@ -11,7 +11,7 @@ class S:
     """ RL Properties """
     img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 
     max_steps = 35                      # Max number of steps before forcibly moved to next stop
-    min_steps = 15                      # How many steps the model must take before giving up on a stop            
+    min_steps = 25                      # How many steps the model must take before giving up on a stop            
     batch_size = 10
     dampen_scalor = .6                  # How much each score is dampened by
     premature_end = -.7                 # The 'punishment' score model receives for ending early
@@ -22,6 +22,7 @@ class S:
     max_steps_after_found = 20          # The number of steps after "found" that the model is allowed before forcibly moving on
     after_found_punishment = .15        # How much to punish model per step after ^
     move_on_reward = .1                 # Points model gets for successfully moving to next episode
+    efficiency_bonus = .3               # Additional points for moving on before using all free steps    
     size_scalar = 7                     # The scalar by which change in box size is multiplied and added to score.
     max_sz_pts = .2                     # The most amount of additional points from increasing box size
     multi_persp_reward = .3             # Points for having found multiple perpsectives of the stop

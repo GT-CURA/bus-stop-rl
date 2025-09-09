@@ -5,6 +5,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 from flask import Flask, render_template
 from threading import Thread
+import logging
 
 # Project moduless
 from resources.custom_policies import StopMLPPolicy
@@ -14,6 +15,8 @@ from resources.loader import StopLoader
 
 # Setup flask app 
 app = Flask(__name__)
+log = logging.getLogger('werkzeug')
+log.disabled = True
 @app.route('/')
 def index():
     return render_template('index.html')

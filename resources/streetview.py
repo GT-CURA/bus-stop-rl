@@ -52,7 +52,7 @@ class StreetView:
         self.current_img = self.reqs.pull_image(self.current_pic)
         return True
 
-    def get_img(self, save_path=None):
+    def get_img(self):
         """ Load bytes from streetview into CV2 image. """
         nparr = np.frombuffer(self.current_img, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -181,7 +181,7 @@ class Requests:
             self.pic_len = pic_dims[0]
             self.pic_height = pic_dims[1]
 
-    def pull_image(self, pic: Pic):
+    def old_pull_img(self, pic: Pic):
         # Parameters for API request
         pic_params = {
             'key': self.key,
