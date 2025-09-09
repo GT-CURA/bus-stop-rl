@@ -61,19 +61,19 @@
 
         if (!bestLink) throw new Error("No suitable pano link found");
 
-        const nextData = await getPanoramaById(bestLink.pano);
-        const loc = nextData.location.latLng;
+        // const nextData = await getPanoramaById(bestLink.pano);
+        // const loc = nextData.location.latLng;
 
-        // Output result as a stringified object
-        const result = {
-          lat: loc.lat(),
-          lng: loc.lng(),
-          heading: bestLink.heading,
-          pano_id: bestLink.pano
-        };
+        // // Output result as a stringified object
+        // const result = {
+        //   lat: loc.lat(),
+        //   lng: loc.lng(),
+        //   heading: bestLink.heading,
+        //   pano_id: bestLink.pano
+        // };
         
         // Playwright will intercept this
-        console.log(JSON.stringify(result));
+        console.log(JSON.stringify(bestLink.pano));
       } catch (e) {
         console.error("Error:", e.message);
       }

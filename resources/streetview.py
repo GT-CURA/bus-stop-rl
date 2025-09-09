@@ -10,6 +10,7 @@ import math
 from time import sleep
 import queue
 from threading import Thread
+from pathlib import Path
 
 class StreetView:
     def __init__(self):
@@ -107,7 +108,7 @@ class StreetView:
 
     def _move(self, direction='w'):
         result = {}
-
+        self.increment_api_counter()
         # Capture JSON from console.log
         def handle_console(msg):
             try:
@@ -127,7 +128,8 @@ class StreetView:
         """)
 
         # Build pic from result
-        self.current_pic = Pic(heading=result['heading'], lat=result['lat'], lng=result['lng'])
+        self.current_pic = Pic(heading=self.current_pic.heading, lat=None, lng=None)
+        self.current_pic.pano_id = result
     
     def _estimate_heading(self, pic, stop: Stop):
         """
@@ -155,6 +157,25 @@ class StreetView:
             cv2.imshow("Bus Stop Find", img)
             cv2.waitKey(1)
 
+    def increment_api_counter(path="assets/api_calls.txt"):
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # If file exists, read and increment
+        if path.exists():
+            with open(path, "r+") as f:
+                try:
+                    count = int(f.read())
+                except ValueError:
+                    count = 0
+                count += 1
+                f.seek(0)
+                f.write(str(count))
+                f.truncate()
+        else:
+            # Create file and initialize to 1
+            with open(path, "w") as f:
+                f.write("1")
 @dataclass
 class Error:
     # I have OCD 
