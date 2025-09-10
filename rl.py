@@ -7,6 +7,7 @@ from settings import S
 import numpy as np
 import gymnasium as gym
 from atexit import register
+from time import sleep 
 
 class StreetViewEnv(gym.Env):
     def __init__(self, streetview: StreetView, stop_loader: StopLoader):
@@ -53,6 +54,9 @@ class StreetViewEnv(gym.Env):
         return features, {}
 
     def step(self, action):
+        # Wait a sec
+        sleep(.3)
+
         # Get key, take screenshot
         done = False
         key = S.action_map[action]

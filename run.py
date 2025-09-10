@@ -69,7 +69,7 @@ def train(save_path: str, load_path = None):
     model.set_logger(logger)
 
     # Begin learning
-    model.learn(total_timesteps=25600, callback=checkpoint_callback)
+    model.learn(total_timesteps=30720, callback=checkpoint_callback)
     
     # Save model, close gym
     model.save(save_path)
