@@ -121,9 +121,9 @@ class Episode():
         heading_sin = np.sin(delta_heading)
         heading_cos = np.cos(delta_heading)
 
-        # Zoom count 
-        zoom_amt = min(self.zoom_amt / 4, 1)
-        zoom_scaled = zoom_amt * 2 -1
+        # # Zoom count 
+        # zoom_amt = min(self.zoom_amt / 4, 1)
+        # zoom_scaled = zoom_amt * 2 -1
 
         # Tell model if these coords and heading have been used before
         self.new_viewpoint = False
@@ -148,7 +148,6 @@ class Episode():
             dist_scaled,
             heading_sin,
             heading_cos,
-            zoom_scaled,
             viewpoint_count,
             remaining_steps,
             spacebar_presses
@@ -165,11 +164,11 @@ class Episode():
         if key == "Key.space":
             self.space_presses += 1
 
-        # Handle zooming 
-        if key == "=":
-            self.zoom_amt += 1
-        elif key in ["w","s","Key.space"]:
-            self.zoom_amt = 0
+        # # Handle zooming 
+        # if key == "=":
+        #     self.zoom_amt += 1
+        # elif key in ["w","s","Key.space"]:
+        #     self.zoom_amt = 0
 
         # Run stop detector model to get conf for assessment
         output = self.stop_detector.run(img)

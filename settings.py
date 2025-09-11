@@ -36,9 +36,8 @@ class S:
         1: "a",
         2: "s",
         3: "d",
-        4: "=",
-        5: "Key.enter",
-        6: "Key.space"
+        4: "Key.enter",
+        5: "Key.space"
     }
 
     """ Logging & Screenshots """
@@ -52,7 +51,7 @@ class S:
     """ Don't Touch """
     bb_dim = 4                          # Vector containing bounding box cords, area, class
     features_dim = 512                  # Vector containing YOLO features
-    geo_dim = 9                         # Vector containing lat/lon
+    geo_dim = 8                         # Vector containing lat/lon
     frame_dim = features_dim + bbs_kept * (bb_dim + num_classes) + geo_dim
     from datetime import datetime
     log_dir = f"{save_folder}/{datetime.now().strftime('%m-%d_%H-%M-%S')}/"

@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 import math
 from pathlib import Path
+from requests.exceptions import ReadTimeout
+import time
 
 class StreetView:
     def __init__(self):
@@ -60,7 +62,7 @@ class StreetView:
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         except Exception as e:
             print(f"Error decoding image: {e}")
-        # cv2.imwrite("static/frame.jpg", img)
+        cv2.imwrite("static/frame.jpg", img)
         return img
 
     def do_action(self, action):
@@ -87,7 +89,7 @@ class StreetView:
     def goto_start(self):
         """ Go back to the initial position. """
         self.current_pic = Pic(
-            heading = None,
+            heading = self.start_heading,
             lat = self.start_stop.og_lat,
             lng = self.start_stop.og_lng
         )
@@ -96,12 +98,20 @@ class StreetView:
     def set_start(self):
         """ Basically tells class to reset. """
         self.start_stop = self.current_stop
+        self.start_heading = self.current_pic.heading
 
-    def _move(self, direction = 'w', dist = 3):
+    def _move(self, direction = 'w', dist = 4, tries = 0):
         # Reversse headingg if necessary
         heading = self.current_pic.heading
         if direction != 'w':
             heading = self.current_pic.heading - 180
+
+        # If tries have been surpassed, increase heading
+        if tries > 3:
+            if direction == 'w':
+                heading += 70 
+            else:
+                heading -= 70
 
         # Calculate new coordinates
         earth_radius = 6378137
@@ -111,9 +121,15 @@ class StreetView:
 
         # Increment if pano ID equals current pano ID
         pic = Pic(self.current_pic.heading, new_lat, new_lng)
-        self.reqs.pull_pano_info(pic)
+
+        # Attempt to pull pano info, return if nothing found 
+        response = self.reqs.pull_pano_info(pic)
+        if response == False: 
+            return 
+        
+        # Ensure that we're pulling a new pano
         if pic.pano_id == self.current_pic.pano_id:
-            self._move(direction=direction, dist=dist+3)
+            self._move(direction=direction, dist=dist+4, tries=tries+1)
         else:
             self.current_pic=pic
 
@@ -191,7 +207,7 @@ class StreetView:
         heading = math.degrees(heading)
         heading = (heading + 360) % 360
         pic.heading = heading
-
+        
 @dataclass
 class Error:
     # I have OCD 
@@ -225,7 +241,6 @@ class Requests:
         if pic_dims:
             self.pic_len = pic_dims[0]
             self.pic_height = pic_dims[1]
-
     
     def old_pull_img(self, pic: Pic):
         # Parameters for API request
@@ -279,6 +294,10 @@ class Requests:
             context="Pulling metadata",
             base='https://maps.googleapis.com/maps/api/streetview/metadata?')
         
+        # Handle finding no results
+        if b'ZERO_RESULTS' in response.content:
+            return False
+        
         # Fetch the coordinates from the json response and store them in the POI
         pano_location = response.json().get("location")
         pic.lng = pano_location["lng"]
@@ -286,23 +305,21 @@ class Requests:
         pic.pano_id = response.json().get("pano_id")
         pic.date = response.json().get("date")
         response.close()
+        return True
 
     def _pull_response(self, params, context, base, coords):
         # Print a sumamry of the request if debugging 
         if self.debug: print(f"[REQUEST] {context} for {coords}")
-
-        # Issue request
-        try:
-            response = requests.get(base, params=params, timeout=10)
         
-        # Catch any exceptions that are raised, return Error
-        except requests.exceptions.RequestException as e:
-            if self.debug: print(f"[ERROR] Got {e} when {context}!")
-            return Error(context, repr(e))
-
-        # Check the request's status code 
-        if response.status_code == 200:
-            return response
+        # Retry several times
+        for i in range(10):
+            try:
+                response = requests.get(base, params=params, timeout=10)
+                response.raise_for_status()
+                return response
+            except ReadTimeout:
+                print(f"[Retry {i+1}] Waiting 5 seconds")
+                time.sleep(5)
 
         # Check for empty response 
         if not response.content:
