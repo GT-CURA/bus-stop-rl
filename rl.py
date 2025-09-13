@@ -122,8 +122,8 @@ class Episode():
         heading_cos = np.cos(delta_heading)
 
         # # Zoom count 
-        # zoom_amt = min(self.zoom_amt / 4, 1)
-        # zoom_scaled = zoom_amt * 2 -1
+        zoom_amt = min(self.zoom_amt / 4, 1)
+        zoom_scaled = zoom_amt * 2 -1
 
         # Tell model if these coords and heading have been used before
         self.new_viewpoint = False
@@ -150,7 +150,8 @@ class Episode():
             heading_cos,
             viewpoint_count,
             remaining_steps,
-            spacebar_presses
+            spacebar_presses, 
+            zoom_scaled
         ], dtype=np.float32)
 
         # Concat features

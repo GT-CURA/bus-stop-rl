@@ -24,7 +24,7 @@ def index():
 def make_env():
     sv = StreetView()
     stop_loader = StopLoader(sv)
-    stop_loader.load_stops("assets/all_scores.json", shuffle_stops=True, num_positives=600)
+    stop_loader.load_stops("assets/all_scores.json", shuffle_stops=False, num_positives=600)
     sv.launch()
     return StreetViewEnv(sv, stop_loader)
 
@@ -59,7 +59,7 @@ def train(save_path: str, load_path = None):
 
     # Creates checkpoint files while training and tensorboard log
     checkpoint_callback = CheckpointCallback(
-        save_freq=300,
+        save_freq=500,
         save_path='./models/',
         name_prefix='PPO'
     )
@@ -94,5 +94,5 @@ if __name__ == "__main__":
     flask_thread = Thread(target=lambda: app.run(debug=False, use_reloader=False))
     flask_thread.start()
 
-    train("models/PPO", "750")
+    train("models/PPO", "24750")
     # infer(vec_env, "models/PPO")

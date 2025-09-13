@@ -44,7 +44,7 @@ class StreetView:
         self.current_pic = Pic(
             heading=None,
             lat=stop.og_lat,
-            lng=stop.og_lng
+            lng=stop.og_lng,
         )
 
         # Pull metadata request to find pano location
@@ -107,7 +107,7 @@ class StreetView:
             heading = self.current_pic.heading - 180
 
         # If tries have been surpassed, increase heading
-        if tries > 3:
+        if tries > 2:
             if direction == 'w':
                 heading += 70 
             else:
@@ -230,6 +230,7 @@ class Pic:
     lng: float
     pano_id = None
     date = None
+    zoom_lvl = 0
 
     def get_coords(self):
         return f"{self.lat},{self.lng}"
@@ -243,6 +244,25 @@ class Requests:
             self.pic_height = pic_dims[1]
     
     def old_pull_img(self, pic: Pic):
+        path = Path(f"{S.log_dir}/api_calls.txt")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # If file exists, read and increment
+        if path.exists():
+            with open(path, "r+") as f:
+                try:
+                    count = int(f.read())
+                except ValueError:
+                    count = 0
+                count += 1
+                f.seek(0)
+                f.write(str(count))
+                f.truncate()
+        else:
+            # Create file and initialize to 1
+            with open(path, "w") as f:
+                f.write("1")
+
         # Parameters for API request
         pic_params = {
             'key': self.key,
