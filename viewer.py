@@ -5,17 +5,20 @@ import time
 from flask import Flask, render_template
 from pathlib import Path
 from resources.streetview import StreetView, Stop
+import logging
 
 # === Flask setup ===
 app = Flask(__name__)
-IMG_PATH = Path("static/frame.jpg")
-DEFAULT_LAT = 33.7738236  # Replace with a real lat
-DEFAULT_LNG = -84.3816805  # Replace with a real lng
-START_HEADING = 90      # Facing east
-
+log = logging.getLogger('werkzeug')
+log.disabled = True
 @app.route('/')
 def index():
     return render_template('index.html')
+
+IMG_PATH = Path("static/frame.jpg")
+DEFAULT_LAT = 33.7738236  
+DEFAULT_LNG = -84.3816805 
+START_HEADING = 90
 
 # === Image Navigator Thread ===
 def streetview_control():
@@ -45,6 +48,7 @@ def streetview_control():
             elif keyboard.is_pressed("="):
                 action = '='
             if action:
+                print(f"Doing action: {action}")
                 sv.do_action(action)
                 img = sv.get_img()
                 IMG_PATH.parent.mkdir(exist_ok=True)

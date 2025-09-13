@@ -88,7 +88,10 @@ class StreetView:
             self._zoom()
 
         # Pull new pic
-        self.current_img = self.reqs.old_pull_img(self.current_pic)
+        if self.current_pic.zoom_lvl > 0:
+            self.current_img = self.reqs.old_pull_img(self.current_pic)
+        else:
+            self.current_img = self.reqs.pull_image(self.current_pic)
     
     def goto_start(self):
         """ Go back to the initial position. """

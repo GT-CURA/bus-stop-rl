@@ -2,6 +2,7 @@ class S:
     """ Streetview Properties """
     show_imgs = True                    # Whether to display images
     wait_time = 2                       # How long to wait between images
+    sleep_time = 0                      # Sleep between requests
 
     """ YOLO Properties"""
     num_classes = 5
@@ -47,7 +48,7 @@ class S:
 
 
     """ API Settings """
-    rotate_amt = 50
+    rotate_amt = 45
 
     """ Don't Touch """
     bb_dim = 4                          # Vector containing bounding box cords, area, class
