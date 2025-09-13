@@ -83,8 +83,12 @@ class StreetView:
         elif action == 's':
             self._move('s')
         
+        # Zoom in
+        elif action == "=":
+            self._zoom()
+
         # Pull new pic
-        self.current_img = self.reqs.pull_image(self.current_pic)
+        self.current_img = self.reqs.old_pull_img(self.current_pic)
     
     def goto_start(self):
         """ Go back to the initial position. """
@@ -101,7 +105,10 @@ class StreetView:
         self.start_heading = self.current_pic.heading
 
     def _move(self, direction = 'w', dist = 4, tries = 0):
-        # Reversse headingg if necessary
+        # Reset zoom level 
+        self.current_pic.zoom_lvl = 0
+
+        # Reverse heading if necessary
         heading = self.current_pic.heading
         if direction != 'w':
             heading = self.current_pic.heading - 180
@@ -188,7 +195,15 @@ class StreetView:
         # Get coordinates through metadata call
         self.reqs.pull_pano_info(self.current_pic)
 
-    
+    def _zoom(self):
+        # See if we're at max zoom level
+        if self.current_pic.zoom_lvl == 2:
+            return
+        
+        # Otherwise, increase zoom level 
+        self.current_pic.zoom_lvl += 1
+        
+
     def _estimate_heading(self, pic, stop: Stop):
         """
         Use pano's coords to determine the necessary camera heading.
@@ -263,12 +278,17 @@ class Requests:
             with open(path, "w") as f:
                 f.write("1")
 
+        # Add zoom level (FOV)
+        zoom_to_fov = {0: 90, 1: 60, 2: 30}
+        fov = zoom_to_fov[pic.zoom_lvl]
+
         # Parameters for API request
         pic_params = {
             'key': self.key,
             'return_error_code': True,
             'outdoor': True,
-            'size': f"{self.pic_len}x{self.pic_height}"}
+            'size': f"{self.pic_len}x{self.pic_height}",
+            'fov':fov}
 
         # Add either pano ID or location
         if pic.pano_id:

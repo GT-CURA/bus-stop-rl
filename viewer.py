@@ -27,8 +27,6 @@ def streetview_control():
     sv.set_start()
 
     print("\n[Street View Controls Ready]")
-    print("Open http://localhost:5000 in your browser")
-    print("W/S = move, A/D = rotate, Q = quit")
 
     while True:
         try:
@@ -44,7 +42,8 @@ def streetview_control():
             elif keyboard.is_pressed('q'):
                 print("Exiting control thread.")
                 break
-
+            elif keyboard.is_pressed("="):
+                action = '='
             if action:
                 sv.do_action(action)
                 img = sv.get_img()
