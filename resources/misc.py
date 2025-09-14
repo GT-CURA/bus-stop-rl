@@ -1,7 +1,6 @@
 import numpy as np 
 from settings import S
 from cv2 import resize
-import re
 from math import radians, sin, cos, sqrt, atan2
 
 class Misc:

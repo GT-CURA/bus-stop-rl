@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import requests 
 from resources.stop import Stop
-from playwright.sync_api import sync_playwright
+# from playwright.sync_api import sync_playwright
 import json
 from settings import S
 import cv2
@@ -26,14 +26,14 @@ class StreetView:
         key = open(key_path, "r").read()
         self.reqs = Requests(key, [640,640])
 
-        # Launch playwright browser
-        browser = sync_playwright().start().chromium.launch(headless=True)
-        self.page = browser.new_page()
+        # # Launch playwright browser
+        # browser = sync_playwright().start().chromium.launch(headless=True)
+        # self.page = browser.new_page()
 
-        # Set key
-        html_content = open("resources\link_fetcher.html").read()
-        html_with_key = html_content.replace(key, "")
-        self.page.set_content(html_with_key)
+        # # Set key
+        # html_content = open("resources\link_fetcher.html").read()
+        # html_with_key = html_content.replace(key, "")
+        # self.page.set_content(html_with_key)
 
     def goto_pt(self, stop: Stop):
         """ Used by loader class to pull initial image of point. """
@@ -143,7 +143,7 @@ class StreetView:
         else:
             self.current_pic=pic
 
-    def _move_prev(self, direction='w'):
+    def _move_old(self, direction='w'):
         pano_id_result = {}
         
         # Write to API counter
