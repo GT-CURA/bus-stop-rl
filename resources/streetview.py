@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import requests 
 from resources.stop import Stop
+from requests.exceptions import RequestException
 # from playwright.sync_api import sync_playwright
 import json
 from settings import S
@@ -260,8 +261,9 @@ class Requests:
         if pic_dims:
             self.pic_len = pic_dims[0]
             self.pic_height = pic_dims[1]
-    
+
     def old_pull_img(self, pic: Pic):
+        if S.request_msgs: print("Pulling image")
         path = Path(f"{S.log_dir}/api_calls.txt")
         path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -313,12 +315,16 @@ class Requests:
         # Close response, return content 
         content = response.content
         response.close()
+        if S.request_msgs: print("[Requests] Done pulling image.")
         return content
 
     def pull_pano_info(self, pic: Pic):
         """
         Extract coordiantes from a pano's metadata, used to determine heading
         """
+
+        if S.request_msgs: print("[Requests] Pulling metadata")
+        time.sleep(.2)
         # Params for request
         params = {
             'key': self.key,
@@ -348,6 +354,7 @@ class Requests:
         pic.pano_id = response.json().get("pano_id")
         pic.date = response.json().get("date")
         response.close()
+        if S.request_msgs: print("[Requests] Done pulling metadata.")
         return True
 
     def _pull_response(self, params, context, base, coords):

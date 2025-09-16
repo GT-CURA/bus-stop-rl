@@ -38,7 +38,7 @@ class StreetViewEnv(gym.Env):
         stop = self.stop_loader.load_stop()
 
         # Create new episode
-        self.episode = Episode(stop, self.sv.page.url, self.stop_detector, self.log_manager, self.sv.current_pic)
+        self.episode = Episode(stop, self.stop_detector, self.log_manager, self.sv.current_pic)
         
         # Set up screenshot stack 
         img = self.sv.get_img()
@@ -75,7 +75,7 @@ class StreetViewEnv(gym.Env):
 
 # Class for storing episode data
 class Episode():
-    def __init__(self, stop, url: str, stop_detector: StopDetector, log_manager: LogManager, pic):
+    def __init__(self, stop, stop_detector: StopDetector, log_manager: LogManager, pic):
         self.log = []
         self.reward = 0.0
         self.steps = 0
@@ -117,7 +117,7 @@ class Episode():
         heading_sin = np.sin(delta_heading)
         heading_cos = np.cos(delta_heading)
 
-        # # Zoom count 
+        # Zoom count 
         zoom_amt = min(self.zoom_amt / 2, 1)
         zoom_scaled = zoom_amt * 2 -1
 
@@ -160,12 +160,6 @@ class Episode():
         # Punish spacebar spamming
         if key == "Key.space":
             self.space_presses += 1
-
-        # # Handle zooming 
-        # if key == "=":
-        #     self.zoom_amt += 1
-        # elif key in ["w","s","Key.space"]:
-        #     self.zoom_amt = 0
 
         # Run stop detector model to get conf for assessment
         output = self.stop_detector.run(img)

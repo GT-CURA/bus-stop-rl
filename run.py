@@ -24,7 +24,7 @@ def index():
 def make_env():
     sv = StreetView()
     stop_loader = StopLoader(sv)
-    stop_loader.load_stops("assets/all_scores.json", shuffle_stops=False, num_positives=600)
+    stop_loader.load_stops("assets/all_scores.json", shuffle_stops=True, num_positives=600)
     sv.launch()
     return StreetViewEnv(sv, stop_loader)
 
@@ -59,7 +59,7 @@ def train(save_path: str, load_path = None):
 
     # Creates checkpoint files while training and tensorboard log
     checkpoint_callback = CheckpointCallback(
-        save_freq=500,
+        save_freq=1024,
         save_path='./models/',
         name_prefix='PPO'
     )
@@ -69,12 +69,12 @@ def train(save_path: str, load_path = None):
     model.set_logger(logger)
 
     # Begin learning
-    model.learn(total_timesteps=30720, callback=checkpoint_callback)
+    model.learn(total_timesteps=51200, callback=checkpoint_callback)
     
     # Save model, close gym
     model.save(save_path)
 
-def infer(env: StreetViewEnv, model_path = "assets/PPO", num_stops = 20):
+def infer(model_path = "assets/PPO", num_stops = 20):
     # Wrap environment just like in 2training
     vec_env = DummyVecEnv([make_env])
     vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
@@ -94,5 +94,5 @@ if __name__ == "__main__":
     flask_thread = Thread(target=lambda: app.run(debug=False, use_reloader=False))
     flask_thread.start()
 
-    train("models/PPO", "24750")
+    train("models/PPO", "6144")
     # infer(vec_env, "models/PPO")
