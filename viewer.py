@@ -1,21 +1,8 @@
-import threading
 import keyboard
-import cv2
 import time
-from flask import Flask, render_template
-from pathlib import Path
 from resources.streetview import StreetView, Stop
-import logging
+from resources.server import start_server
 
-# === Flask setup ===
-app = Flask(__name__)
-log = logging.getLogger('werkzeug')
-log.disabled = True
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-IMG_PATH = Path("static/frame.jpg")
 DEFAULT_LAT = 33.7738236  
 DEFAULT_LNG = -84.3816805 
 START_HEADING = 90
@@ -50,9 +37,7 @@ def streetview_control():
             if action:
                 print(f"Doing action: {action}")
                 sv.do_action(action)
-                img = sv.get_img()
-                IMG_PATH.parent.mkdir(exist_ok=True)
-                cv2.imwrite(str(IMG_PATH), img)
+                sv.get_img()
                 time.sleep(0.25)
 
             time.sleep(0.05)
@@ -62,9 +47,7 @@ def streetview_control():
 
 # === Launch Threads ===
 if __name__ == "__main__":
-    # Start Flask app in background
-    flask_thread = threading.Thread(target=lambda: app.run(debug=False, use_reloader=False))
-    flask_thread.start()
+    start_server()
 
     # Run Street View controller in main thread
     streetview_control()

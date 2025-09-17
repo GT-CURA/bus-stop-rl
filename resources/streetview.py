@@ -5,12 +5,12 @@ from requests.exceptions import RequestException
 # from playwright.sync_api import sync_playwright
 import json
 from settings import S
-import cv2
 import numpy as np
 import math
 from pathlib import Path
 from requests.exceptions import ReadTimeout
 import time
+import cv2
 
 class StreetView:
     def __init__(self):
@@ -58,12 +58,13 @@ class StreetView:
 
     def get_img(self):
         """ Load bytes from streetview into CV2 image. """
+        # Decode bytes into image, return it
         nparr = np.frombuffer(self.current_img, np.uint8)
         try:
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         except Exception as e:
             print(f"Error decoding image: {e}")
-        cv2.imwrite("static/frame.jpg", img)
+        cv2.imwrite("resources/static/frame.jpg", img)
         return img
 
     def do_action(self, action):
@@ -108,7 +109,7 @@ class StreetView:
         self.start_stop = self.current_stop
         self.start_heading = self.current_pic.heading
 
-    def _move(self, direction = 'w', dist = 4, tries = 0):
+    def _move(self, direction = 'w', dist = 6, tries = 0):
         # Reset zoom level 
         self.current_pic.zoom_lvl = 0
 
@@ -117,7 +118,7 @@ class StreetView:
         if direction != 'w':
             heading = self.current_pic.heading - 180
 
-        # If tries have been surpassed, increase heading
+        # If tries have been surpassed, increase direction (not pic's heading)
         if tries > 2:
             if direction == 'w':
                 heading += 70 
@@ -142,9 +143,15 @@ class StreetView:
         if pic.pano_id == self.current_pic.pano_id:
             self._move(direction=direction, dist=dist+4, tries=tries+1)
         else:
+            # Tweak heading if this isn't our first try
+            if tries > 0:
+                if direction == 'w':
+                    pic.heading += 11.25
+                else:
+                    pic.heading -= 11.25
             self.current_pic=pic
 
-    def _move_old(self, direction='w'):
+    def _api_move(self, direction='w'):
         pano_id_result = {}
         
         # Write to API counter

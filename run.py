@@ -1,30 +1,20 @@
-# SB3 & Flask
+# SB3
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.logger import configure
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
-from flask import Flask, render_template
-from threading import Thread
-import logging
 
-# Project moduless
+# Project modules
 from resources.custom_policies import StopMLPPolicy
 from rl import StreetView, StreetViewEnv
 from settings import S 
 from resources.loader import StopLoader
-
-# Setup flask app 
-app = Flask(__name__)
-log = logging.getLogger('werkzeug')
-log.disabled = True
-@app.route('/')
-def index():
-    return render_template('index.html')
+from resources.server import start_server
 
 def make_env():
     sv = StreetView()
     stop_loader = StopLoader(sv)
-    stop_loader.load_stops("assets/all_scores.json", shuffle_stops=True, num_positives=600)
+    stop_loader.load_stops("assets/all_scores.json", shuffle_stops=True, num_positives=800)
     sv.launch()
     return StreetViewEnv(sv, stop_loader)
 
@@ -74,8 +64,8 @@ def train(save_path: str, load_path = None):
     # Save model, close gym
     model.save(save_path)
 
-def infer(model_path = "assets/PPO", num_stops = 20):
-    # Wrap environment just like in 2training
+def infer(model_path = "assets/PPO", stops = "test.json"):
+    # Wrap environment
     vec_env = DummyVecEnv([make_env])
     vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
@@ -83,7 +73,7 @@ def infer(model_path = "assets/PPO", num_stops = 20):
     model = PPO.load(model_path, env=vec_env)
 
     # Run inference
-    for episode in range(num_stops):
+    for episode in range(0):
         obs = vec_env.reset()
         done = False
         while not done:
@@ -91,8 +81,7 @@ def infer(model_path = "assets/PPO", num_stops = 20):
             obs, reward, done, _, info = vec_env.step(action)
 
 if __name__ == "__main__":
-    flask_thread = Thread(target=lambda: app.run(debug=False, use_reloader=False))
-    flask_thread.start()
+    start_server(port=5000)
 
-    train("models/PPO", "6144")
+    train("models/PPO", "34816")
     # infer(vec_env, "models/PPO")
