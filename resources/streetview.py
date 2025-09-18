@@ -137,11 +137,28 @@ class StreetView:
             # If pano wasn't found, try to get street dir 
             street_dir = self._get_street_dir()
             if street_dir:
-                if direction == 'w':
-                    pic = _calc_coords(street_dir)
+                target_dir = self.current_pic.heading
+
+                # Flip target dir if going backwards
+                if direction == 's':
+                    target_dir -= 180 
+                
+                # Normalize 
+                target_dir = target_dir % 360
+                opp_street_dir = (street_dir - 180) % 360
+                street_dir =  street_dir % 360
+                
+                def angular_difference(a, b):
+                    """Returns the smallest difference between two angles in degrees."""
+                    return min(abs(a - b), 360 - abs(a - b))
+                
+                # Pick either street dir or opposite, depending on which is closer
+                if angular_difference(target_dir, street_dir) <= angular_difference(target_dir, opp_street_dir):
+                    new_heading = street_dir
                 else:
-                    pic = _calc_coords(street_dir - 180)
-            
+                    new_heading = opp_street_dir
+                pic = _calc_coords(new_heading)
+
             # If no sstreet dir, just add 70 degrees
             else:
                 if direction == 'w':
@@ -308,7 +325,6 @@ class Requests:
             self.pic_len = pic_dims[0]
             self.pic_height = pic_dims[1]
 
-    
     def old_pull_img(self, pic: Pic):
         if S.request_msgs: print("Pulling image")
         path = Path(f"{S.log_dir}/api_calls.txt")
