@@ -2,19 +2,16 @@ from settings import S
 import json
 from random import sample, shuffle, randint
 from resources.stop import Stop
-
+import csv
 class StopLoader:
 
-    def __init__(self, streetview):
+    def __init__(self, streetview, scramble_pos=False):
         self.sv = streetview
         self.index = 0
         self.stops = None
+        self.scramble_pos = scramble_pos
         
     def load_stops(self, path: str, shuffle_stops = True, num_positives=0, ignore_path: str = None):
-        # Load all stops 
-        with open(path) as f:
-                scores = json.load(f)
-        
         # Find which stops to ignore if specified
         if ignore_path: 
             with open(ignore_path) as f:
@@ -24,31 +21,52 @@ class StopLoader:
             for score_num in ignore_f:
                 stops_ignored.append(score_num["place_name"])
 
-        # Go through stops
         stops = []
-        pos = []
-        for score_num in scores:
+        # Load stops (CSV)
+        if path.lower().endswith('.csv'):
+            with open(path, mode='r', newline='', encoding='utf-8') as csvfile:
+                
+                # Iterate through stops, creating Stop objects
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    stop = Stop(float(row["latitude"]), float(row["longitude"]),
+                                row["name"], None, False, None)
 
-            # Build stop 
-            score = scores[score_num]
-            stop = Stop(score["latitude"], score["longitude"], 
-                        score["gmaps_place_name"], None, True, None)
+                    # Ignore if requestted
+                    if ignore_path:
+                        if score["name"] in stops_ignored:
+                            continue
+                    stops.append(stop)
 
-            # Check if this is in the ignore list 
-            if ignore_path:
-                if score["gmaps_place_name"] in stops_ignored:
-                    continue 
+        else:             
+            # Load all stops 
+            with open(path) as f:
+                    scores = json.load(f)
 
-            # Pull out false negatives
-            if len(score['amenity_scores']) == 0:
-                stops.append(stop)
-            else:
-                stop.false_negative = False
-                pos.append(stop)
+            # Go through stops
+            pos = []
+            for score_num in scores:
 
-        # Include positives if requested 
-        if num_positives:
-            stops.extend(sample(pos, num_positives))
+                # Build stop 
+                score = scores[score_num]
+                stop = Stop(score["latitude"], score["longitude"], 
+                            score["gmaps_place_name"], None, True, None)
+
+                # Check if this is in the ignore list 
+                if ignore_path:
+                    if score["gmaps_place_name"] in stops_ignored:
+                        continue 
+
+                # Pull out false negatives
+                if len(score['amenity_scores']) == 0:
+                    stops.append(stop)
+                else:
+                    stop.false_negative = False
+                    pos.append(stop)
+
+            # Include positives if requested 
+            if num_positives:
+                stops.extend(sample(pos, num_positives))
         
         # Shuffle if requested
         if shuffle_stops:
@@ -70,7 +88,7 @@ class StopLoader:
             return stop
 
         # If stop is a positive, scramble
-        if not stop.false_negative:
+        if not stop.false_negative and self.scramble_pos:
             self.scramble_positive()
 
         # Tell SV to log initial position

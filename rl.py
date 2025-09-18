@@ -7,6 +7,7 @@ from settings import S
 import numpy as np
 import gymnasium as gym
 from atexit import register
+from cv2 import imwrite
 
 class StreetViewEnv(gym.Env):
     def __init__(self, streetview: StreetView, stop_loader: StopLoader):
@@ -233,8 +234,12 @@ class Episode():
 
             # Run model again :( to get annotations on a copy of the best image
             save_img = self.best_img[1].copy()
-            results = self.stop_detector.run(save_img)
-            results.save(filename=f"{S.log_dir}/{stop_name}_labeled.jpg")
+            filename=f"{S.log_dir}/{stop_name}_best.jpg"
+            if S.annotate_screenshots:
+                results = self.stop_detector.run(save_img)
+                results.save()
+            else:
+                imwrite(filename, save_img)
         
         # Tell model to finish this episode
         return reward, True

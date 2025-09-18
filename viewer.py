@@ -3,8 +3,8 @@ import time
 from resources.streetview import StreetView, Stop
 from resources.server import start_server
 
-DEFAULT_LAT = 33.7738236  
-DEFAULT_LNG = -84.3816805 
+DEFAULT_LAT = 33.786315
+DEFAULT_LNG = -84.407420
 START_HEADING = 90
 
 # === Image Navigator Thread ===

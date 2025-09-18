@@ -3,7 +3,7 @@ class S:
     show_imgs = True                    # Whether to display images
     wait_time = 2                       # How long to wait between images
     sleep_time = .3                      # Sleep between requests
-    request_msgs = True
+    request_msgs = False
 
     """ YOLO Properties"""
     num_classes = 5
@@ -44,7 +44,8 @@ class S:
     }
 
     """ Logging & Screenshots """
-    save_screenshots = False            # Save screenshots of "best evidence" of each bus stop?
+    save_screenshots = True            # Save screenshots of "best evidence" of each bus stop?
+    annotate_screenshots = False       # Run YOLO model to annotate screenshots?
     save_folder = "runs"
 
 

@@ -11,6 +11,7 @@ from pathlib import Path
 from requests.exceptions import ReadTimeout
 import time
 import cv2
+import re
 
 class StreetView:
     def __init__(self):
@@ -109,7 +110,15 @@ class StreetView:
         self.start_stop = self.current_stop
         self.start_heading = self.current_pic.heading
 
-    def _move(self, direction = 'w', dist = 6, tries = 0):
+    def _move(self, direction = 'w', dist = 8, heading = None):
+        def _calc_coords(heading):
+            # Calculate new coordinates
+            earth_radius = 6378137
+            heading_rad = math.radians(heading)
+            new_lat = self.current_pic.lat + (dist / earth_radius) * math.cos(heading_rad) * (180 / math.pi)
+            new_lng = self.current_pic.lng + (dist / earth_radius) * math.sin(heading_rad) * (180 / math.pi) / math.cos(math.radians(self.current_pic.lat))
+            return Pic(self.current_pic.heading, new_lat, new_lng)
+        
         # Reset zoom level 
         self.current_pic.zoom_lvl = 0
 
@@ -118,39 +127,69 @@ class StreetView:
         if direction != 'w':
             heading = self.current_pic.heading - 180
 
-        # If tries have been surpassed, increase direction (not pic's heading)
-        if tries > 2:
-            if direction == 'w':
-                heading += 70 
-            else:
-                heading -= 70
-
-        # Calculate new coordinates
-        earth_radius = 6378137
-        heading_rad = math.radians(heading)
-        new_lat = self.current_pic.lat + (dist / earth_radius) * math.cos(heading_rad) * (180 / math.pi)
-        new_lng = self.current_pic.lng + (dist / earth_radius) * math.sin(heading_rad) * (180 / math.pi) / math.cos(math.radians(self.current_pic.lat))
-
         # Increment if pano ID equals current pano ID
-        pic = Pic(self.current_pic.heading, new_lat, new_lng)
+        pic = _calc_coords(heading)
 
-        # Attempt to pull pano info, return if nothing found 
+        # See if a new pano (or any) was found 
         response = self.reqs.pull_pano_info(pic)
-        if response == False: 
-            return 
-        
-        # Ensure that we're pulling a new pano
-        if pic.pano_id == self.current_pic.pano_id:
-            self._move(direction=direction, dist=dist+4, tries=tries+1)
-        else:
-            # Tweak heading if this isn't our first try
-            if tries > 0:
+        if response == False or pic.pano_id == self.current_pic.pano_id: 
+    
+            # If pano wasn't found, try to get street dir 
+            street_dir = self._get_street_dir()
+            if street_dir:
                 if direction == 'w':
-                    pic.heading += 11.25
+                    pic = _calc_coords(street_dir)
                 else:
-                    pic.heading -= 11.25
-            self.current_pic=pic
+                    pic = _calc_coords(street_dir - 180)
+            
+            # If no sstreet dir, just add 70 degrees
+            else:
+                if direction == 'w':
+                    pic = _calc_coords(self.current_pic.heading + 70)
+                else:
+                    pic = _calc_coords(self.current_pic.heading - 70)
 
+        # Update current pic
+        self.current_pic = pic
+
+    def _get_street_dir(self):
+            # Build request URL
+            url = ("https://maps.googleapis.com/maps/api/js/GeoPhotoService.SingleImageSearch"
+                    "?pb=!1m5!1sapiv3!5sUS!11m2!1m1!1b0!2m4!1m2!3d{lat}!4d{lon}!2d50!3m10"
+                    "!2m2!1sen!2sGB!9m1!1e2!11m4!1m3!1e2!2b1!3e2!4m10!1e1!1e2!1e3!1e4!1e8!1e6!5m1!1e2!6m1!1e2"
+                    "&callback=callbackfunc"
+                ).format(lat=self.current_pic.lat, lon=self.current_pic.lng)
+            
+            # Build request header
+            headers = {
+                    "User-Agent": "Mozilla/5.0",
+                    "Accept": "*/*",
+                    "Referer": "https://maps.google.com/",
+                }
+            
+            # Send request
+            try:
+                r = requests.get(url, headers=headers, timeout=10)
+            except Exception as e:
+                return None
+
+            # Strip JSON from payload text
+            m = re.search(rf"{re.escape("callbackfunc")}\s*\(\s*(.*)\s*\)\s*;?\s*$", r.text, re.DOTALL)
+            if not m:
+                return None
+            data = json.loads(m.group(1))
+
+            # Check if we found anything
+            if data == [[5, "generic", "Search returned no images."]]:
+                return None
+
+            # Pull out heading
+            subset = data[1][5][0]
+            raw_panos = subset[3][0]
+            raw_panos = raw_panos[::-1]
+            heading = float(raw_panos[0][2][2][0])
+            return heading
+    
     def _api_move(self, direction='w'):
         pano_id_result = {}
         
@@ -269,6 +308,7 @@ class Requests:
             self.pic_len = pic_dims[0]
             self.pic_height = pic_dims[1]
 
+    
     def old_pull_img(self, pic: Pic):
         if S.request_msgs: print("Pulling image")
         path = Path(f"{S.log_dir}/api_calls.txt")

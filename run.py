@@ -10,15 +10,16 @@ from rl import StreetView, StreetViewEnv
 from settings import S 
 from resources.loader import StopLoader
 from resources.server import start_server
+import numpy as np
 
-def make_env():
+def make_env(path: str):
     sv = StreetView()
-    stop_loader = StopLoader(sv)
-    stop_loader.load_stops("assets/all_scores.json", shuffle_stops=True, num_positives=800)
+    stop_loader = StopLoader(sv, True)
+    stop_loader.load_stops(path, shuffle_stops=True, num_positives=2000)
     sv.launch()
     return StreetViewEnv(sv, stop_loader)
 
-def train(save_path: str, load_path = None):
+def train(save_path: str, stops_path: str, model_path = None):
     """
     Train the model, either a fresh version or from a saved path.
 
@@ -26,12 +27,12 @@ def train(save_path: str, load_path = None):
     :param save_path: Path to save the model to, including checkpoints.
     :param load_path: If resuming training, specify existsing model path.
     """
-    vec_env = DummyVecEnv([make_env])
+    vec_env = DummyVecEnv([lambda: make_env(stops_path)])
     vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Resume training 
-    if load_path:
-        model = PPO.load(load_path, env=vec_env)
+    if model_path:
+        model = PPO.load(model_path, env=vec_env)
     
     else:
         # Create PPO model
@@ -64,24 +65,25 @@ def train(save_path: str, load_path = None):
     # Save model, close gym
     model.save(save_path)
 
-def infer(model_path = "assets/PPO", stops = "test.json"):
+def infer(model_path: str, stops_path: str, num_episodes:int):
     # Wrap environment
-    vec_env = DummyVecEnv([make_env])
+    vec_env = DummyVecEnv([lambda: make_env(stops_path)])
     vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Load the model
     model = PPO.load(model_path, env=vec_env)
 
     # Run inference
-    for episode in range(0):
+    for ep in range(num_episodes):
         obs = vec_env.reset()
         done = False
         while not done:
-            action, _ = model.predict(obs, deterministic=True)
-            obs, reward, done, _, info = vec_env.step(action)
+            action, _ = model.predict(obs, deterministic=False)
+            obs, reward, done, info = vec_env.step(action)
+            done = done[0]
 
 if __name__ == "__main__":
     start_server(port=5000)
 
-    train("models/PPO", "34816")
-    # infer(vec_env, "models/PPO")
+    train("models/PPO", "assets/all_scores.json", "53248")
+    # infer("53248", "assets/all_stops.csv", 200)
