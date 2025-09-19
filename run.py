@@ -10,14 +10,20 @@ from rl import StreetView, StreetViewEnv
 from settings import S 
 from resources.loader import StopLoader
 from resources.server import start_server
-import numpy as np
 
 def make_env(path: str):
+    # Create streetview and loader
     sv = StreetView()
     stop_loader = StopLoader(sv, True)
+
+    # Load stops, launch SV
     stop_loader.load_stops(path, shuffle_stops=True, num_positives=2000)
     sv.launch()
-    return StreetViewEnv(sv, stop_loader)
+
+    # Pass YOLO to loader :(
+    env = StreetViewEnv(sv, stop_loader)
+    stop_loader.stop_detector = env.stop_detector
+    return env
 
 def train(save_path: str, stops_path: str, model_path = None):
     """
@@ -85,5 +91,5 @@ def infer(model_path: str, stops_path: str, num_episodes:int):
 if __name__ == "__main__":
     start_server(port=5000)
 
-    train("models/PPO", "assets/all_scores.json", "53248")
+    train("models/PPO", "assets/all_scores.json", "TEMP")
     # infer("53248", "assets/all_stops.csv", 200)

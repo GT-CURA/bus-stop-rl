@@ -2,6 +2,7 @@ from settings import S
 import json
 from random import sample, shuffle, randint
 from resources.stop import Stop
+from resources.stop_detector import StopDetector
 import csv
 class StopLoader:
 
@@ -10,6 +11,7 @@ class StopLoader:
         self.index = 0
         self.stops = None
         self.scramble_pos = scramble_pos
+        self.stop_detector: StopDetector = None
         
     def load_stops(self, path: str, shuffle_stops = True, num_positives=0, ignore_path: str = None):
         # Find which stops to ignore if specified
@@ -96,7 +98,7 @@ class StopLoader:
         return stop
 
     """ WIP way to use positive stops to train """
-    def scramble_positive(self):
+    def scramble_positive(self, tries = 0):
         print("\n[Stop Loader] Scrambling positive stop...")
 
         # Pick a direction to walk in, press key x times
@@ -106,6 +108,22 @@ class StopLoader:
         # Pick a direction to turn in, press key x times
         action = sample(['a','d'], 1)
         self.press_loop(action, randint(0,3))
+
+        # Check if stop is still visible
+        img = self.sv.get_img()
+        output = self.stop_detector.run(img)
+        _, found, _, _ = self.stop_detector.score_output(output)
+
+        # Stop still visible
+        if found:
+            # Run function again if tries haven't been exhausted
+            if tries < 2:
+                self.scramble_positive(tries = tries + 1)
+            
+            # Turn away from the stop
+            else:
+                action = sample(['a','d'], 1)
+                self.press_loop(action, randint(0,2))
         print("[Stop Loader] Complete!\n")
 
     def press_loop(self, action: str, num: int):

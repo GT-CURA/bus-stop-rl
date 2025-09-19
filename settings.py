@@ -2,7 +2,7 @@ class S:
     """ Streetview Properties """
     show_imgs = True                    # Whether to display images
     wait_time = 2                       # How long to wait between images
-    sleep_time = .3                      # Sleep between requests
+    sleep_time = 1                      # Sleep between requests
     request_msgs = False
 
     """ YOLO Properties"""

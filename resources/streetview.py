@@ -37,17 +37,23 @@ class StreetView:
         # html_with_key = html_content.replace(key, "")
         # self.page.set_content(html_with_key)
 
-    def goto_pt(self, stop: Stop):
+    def goto_pt(self, stop: Stop = None):
         """ Used by loader class to pull initial image of point. """
-        # If this is the initial use, define starting stop
-        self.current_stop = stop
+        # Go to the inputted stop (first use for episode)
+        if stop:
+            # If this is the initial use, define starting stop
+            self.current_stop = stop
 
-        # Build pic, send img
-        self.current_pic = Pic(
-            heading=None,
-            lat=stop.og_lat,
-            lng=stop.og_lng,
-        )
+            # Build pic using stop's info, set as current pic
+            self.current_pic = Pic(
+                heading=None,
+                lat=stop.og_lat,
+                lng=stop.og_lng,
+            )
+        
+        # Go to the starting pic (space bar was pressed)
+        else:
+            self.current_pic = self.start_pic
 
         # Pull metadata request to find pano location
         self.reqs.pull_pano_info(self.current_pic)
@@ -98,17 +104,12 @@ class StreetView:
     
     def goto_start(self):
         """ Go back to the initial position. """
-        self.current_pic = Pic(
-            heading = self.start_heading,
-            lat = self.start_stop.og_lat,
-            lng = self.start_stop.og_lng
-        )
-        self.goto_pt(self.current_stop)
+        self.goto_pt()
 
     def set_start(self):
         """ Basically tells class to reset. """
-        self.start_stop = self.current_stop
-        self.start_heading = self.current_pic.heading
+        # Logs the current pic (location, heading) as starting point
+        self.start_pic = self.current_pic
 
     def _move(self, direction = 'w', dist = 8, heading = None):
         def _calc_coords(heading):
