@@ -14,10 +14,10 @@ from resources.server import start_server
 def make_env(path: str):
     # Create streetview and loader
     sv = StreetView()
-    stop_loader = StopLoader(sv, True)
+    stop_loader = StopLoader(sv, scramble_pos=False)
 
     # Load stops, launch SV
-    stop_loader.load_stops(path, shuffle_stops=True, num_positives=2000)
+    stop_loader.load_stops(path, shuffle_stops=True, num_positives=1700)
     sv.launch()
 
     # Pass YOLO to loader :(
@@ -91,5 +91,5 @@ def infer(model_path: str, stops_path: str, num_episodes:int):
 if __name__ == "__main__":
     start_server(port=5000)
 
-    train("models/PPO", "assets/all_scores.json", "TEMP")
+    train("models/PPO", "assets/all_stops.csv", "TEMP")
     # infer("53248", "assets/all_stops.csv", 200)

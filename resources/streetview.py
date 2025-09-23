@@ -56,8 +56,10 @@ class StreetView:
             self.current_pic = self.start_pic
 
         # Pull metadata request to find pano location
-        self.reqs.pull_pano_info(self.current_pic)
-        self._estimate_heading(self.current_pic, stop)
+        if self.current_pic.pano_id == None:
+            self.reqs.pull_pano_info(self.current_pic)
+        if self.current_pic.heading == None:
+            self._estimate_heading(self.current_pic, stop)
 
         # Pull image
         self.current_img = self.reqs.pull_image(self.current_pic)
@@ -264,6 +266,7 @@ class StreetView:
         self.reqs.pull_pano_info(self.current_pic)
 
     def _zoom(self):
+        return 
         # See if we're at max zoom level
         if self.current_pic.zoom_lvl == 2:
             return
