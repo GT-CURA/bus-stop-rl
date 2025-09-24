@@ -28,15 +28,6 @@ class StreetView:
         key = open(key_path, "r").read()
         self.reqs = Requests(key, [640,640])
 
-        # # Launch playwright browser
-        # browser = sync_playwright().start().chromium.launch(headless=True)
-        # self.page = browser.new_page()
-
-        # # Set key
-        # html_content = open("resources\link_fetcher.html").read()
-        # html_with_key = html_content.replace(key, "")
-        # self.page.set_content(html_with_key)
-
     def goto_pt(self, stop: Stop = None):
         """ Used by loader class to pull initial image of point. """
         # Go to the inputted stop (first use for episode)
@@ -215,64 +206,8 @@ class StreetView:
             raw_panos = raw_panos[::-1]
             heading = float(raw_panos[0][2][2][0])
             return heading
-    
-    def _api_move(self, direction='w'):
-        pano_id_result = {}
-        
-        # Write to API counter
-        path = Path(f"{S.log_dir}/api_calls.txt")
-        path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # If file exists, read and increment
-        if path.exists():
-            with open(path, "r+") as f:
-                try:
-                    count = int(f.read())
-                except ValueError:
-                    count = 0
-                count += 1
-                f.seek(0)
-                f.write(str(count))
-                f.truncate()
-        else:
-            # Create file and initialize to 1
-            with open(path, "w") as f:
-                f.write("1")
-                
-        def handle_console(msg):
-            try:
-                text = msg.text
-                # Strip quotes
-                if text.startswith('"') and text.endswith('"'):
-                    pano_id_result["pano_id"] = json.loads(text)
-            except Exception:
-                pass
-
-        self.page.on("console", handle_console)
-
-        if self.current_pic.pano_id:
-            self.page.evaluate(f"""
-                window.findNextPano(null, null, {self.current_pic.heading}, "{direction}", "{self.current_pic.pano_id}");
-            """)
-        else:
-            self.page.evaluate(f"""
-                window.findNextPano(
-                {self.current_pic.lat}, {self.current_pic.lng}, {self.current_pic.heading}, "{direction}");
-            """)
-
-        # Build new pic with pano_id
-        self.current_pic = Pic(
-            heading=self.current_pic.heading,
-            lat=None,
-            lng=None,
-        )
-        self.current_pic.pano_id = pano_id_result.get("pano_id")
-
-        # Get coordinates through metadata call
-        self.reqs.pull_pano_info(self.current_pic)
 
     def _zoom(self):
-        return 
         # See if we're at max zoom level
         if self.current_pic.zoom_lvl == 2:
             return
@@ -280,7 +215,6 @@ class StreetView:
         # Otherwise, increase zoom level 
         self.current_pic.zoom_lvl += 1
         
-
     def _estimate_heading(self, pic, stop: Stop):
         """
         Use pano's coords to determine the necessary camera heading.
