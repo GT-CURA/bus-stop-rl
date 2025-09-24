@@ -128,4 +128,4 @@ class StopLoader:
 
     def press_loop(self, action: str, num: int):
         for i in range(num):
-            self.sv.do_action(action[0])
+            self.sv.do_action(action[0], pull_img=False)

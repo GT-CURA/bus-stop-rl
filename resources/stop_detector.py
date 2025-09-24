@@ -17,6 +17,9 @@ class StopDetector:
 
         # Run model
         output = self.model(img)[0]
+
+        # Save output
+        output.save("resources/static/frame.jpg")
         return output
 
     def score_output(self, output):
@@ -64,7 +67,7 @@ class StopDetector:
         # Ensure weigghts are frozen
         with torch.no_grad():
             # Extract backbone, run image through it to get features
-            features = self.model.model.model[:11](img_tensor) 
+            features = self.model.model.model[:9](img_tensor) 
 
             # Global average pooling (512-dim output)
             pooled_feats = features.mean(dim=[2, 3]).squeeze().cpu().numpy()

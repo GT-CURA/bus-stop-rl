@@ -73,10 +73,9 @@ class StreetView:
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         except Exception as e:
             print(f"Error decoding image: {e}")
-        cv2.imwrite("resources/static/frame.jpg", img)
         return img
 
-    def do_action(self, action):
+    def do_action(self, action, pull_img = True):
         """ Immitate movement in streetview. """
         # Rotate counterclockwise
         if action == 'a':
@@ -98,11 +97,18 @@ class StreetView:
         elif action == "=":
             self._zoom()
 
-        # Pull new pic
-        if self.current_pic.zoom_lvl > 0:
-            self.current_img = self.reqs.old_pull_img(self.current_pic)
+        # Pull image if requested
+        if pull_img:
+            # Pull new pic
+            if self.current_pic.zoom_lvl > 0:
+                self.current_img = self.reqs.old_pull_img(self.current_pic)
+            else:
+                self.current_img = self.reqs.pull_image(self.current_pic)
+        
+        # Otherwise, just do metadata call
         else:
-            self.current_img = self.reqs.pull_image(self.current_pic)
+            if not self.current_pic.pano_id:
+                self.reqs.pull_pano_info(self.current_pic)
     
     def goto_start(self):
         """ Go back to the initial position. """
@@ -328,7 +334,7 @@ class Requests:
         if pic_dims:
             self.pic_len = pic_dims[0]
             self.pic_height = pic_dims[1]
-
+    
     def old_pull_img(self, pic: Pic):
         if S.request_msgs: print("Pulling image")
         path = Path(f"{S.log_dir}/api_calls.txt")

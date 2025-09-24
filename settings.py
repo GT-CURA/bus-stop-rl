@@ -6,7 +6,7 @@ class S:
     request_msgs = False
 
     """ YOLO Properties"""
-    num_classes = 5
+    num_classes = 4
     yolo_path = "assets/YOLO.pt"
     secondary_boost = .35               # How much of the secondary amenities' scores are kept 
 
@@ -29,7 +29,9 @@ class S:
     max_sz_pts = .2                     # The most amount of additional points from increasing box size
     multi_persp_reward = .3             # Points for having found multiple perpsectives of the stop
     num_persp_rewarded = 4              # Max number of perspectives the model is rewarded for finding
-    stack_sz = 30
+    reused_vp_penalty = .15              # Penalty per viewpoint reuse 
+    stack_sz = 35                       # Number of frames stacked 
+
 
     """ RPPO Properties """
     bbs_kept = 3                        # How many of the highest conf bounding boxes will be kept per frame
@@ -44,7 +46,7 @@ class S:
     }
 
     """ Logging & Screenshots """
-    save_screenshots = True            # Save screenshots of "best evidence" of each bus stop?
+    save_screenshots = False           # Save screenshots of "best evidence" of each bus stop?
     annotate_screenshots = False       # Run YOLO model to annotate screenshots?
     save_folder = "runs"
 
@@ -54,7 +56,7 @@ class S:
 
     """ Don't Touch """
     bb_dim = 4                          # Vector containing bounding box cords, area, class
-    features_dim = 512                  # Vector containing YOLO features
+    features_dim = 256                  # Vector containing YOLO features
     geo_dim = 9                         # Vector containing lat/lon
     frame_dim = features_dim + bbs_kept * (bb_dim + num_classes) + geo_dim
     from datetime import datetime

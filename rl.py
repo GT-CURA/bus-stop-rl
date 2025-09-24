@@ -50,7 +50,6 @@ class StreetViewEnv(gym.Env):
         self.reset_next = False
 
         # Give model the observation
-        features = np.array(features, dtype=self.observation_space.dtype)
         return features, {}
 
     def step(self, action):
@@ -87,7 +86,8 @@ class Episode():
         self.stop = stop
         self.steps_since_found = 0
         self.found_viewpoints = []
-        self.new_viewpoint = False
+        self.viewpoints = {}
+        self.vp_used_ct = 0
         self.stop_detector = stop_detector
         self.log_manager = log_manager
         self.zoom_amt = 0
@@ -100,14 +100,14 @@ class Episode():
         yolo_feats, found = self.stop_detector.extract_features(img, output)
 
         # Get spatial info from SV URL
-        lat, lon, heading = pic.lat, pic.lng, pic.heading
+        lat, lng, heading = pic.lat, pic.lng, pic.heading
         
         # Calculate diff between initial and new lats
         delta_lat = lat - self.initial_lat
-        delta_lon = lon - self.initial_lon
+        delta_lon = lng - self.initial_lon
 
         # Calculate distance vector. Grows smaller after 50 meters
-        dist = Misc.haversine(self.initial_lat, self.initial_lon, lat, lon)
+        dist = Misc.haversine(self.initial_lat, self.initial_lon, lat, lng)
         dist_scaled = np.tanh(dist / 50)
 
         # Normalize heading difference
@@ -122,18 +122,25 @@ class Episode():
         zoom_amt = min(self.zoom_amt / 2, 1)
         zoom_scaled = zoom_amt * 2 -1
 
-        # Tell model if these coords and heading have been used before
-        self.new_viewpoint = False
+        # Create viewpoint
+        vp = (lat, lng, round(heading, 1), self.zoom_amt)
+
+        # Add to all viewpoints 
+        if vp not in self.viewpoints:
+            self.viewpoints[vp] = 1
+            self.vp_used_ct = 0
+        else:
+            self.viewpoints[vp] += 1
+            self.vp_used_ct = self.viewpoints[vp]
+
+        # If a stop was detected, add this to found viewpoints
         if found:
-            view = (round(lat, 6), round(lon, 6), round(heading, 1))
-            if view not in self.found_viewpoints:
-                self.found_viewpoints.append(view)
-                self.new_viewpoint = True
-        viewpoint_count = min(len(self.found_viewpoints)/3, 1)
+            if vp not in self.found_viewpoints:
+                self.found_viewpoints.append(vp)
+        found_vp_count = min(len(self.found_viewpoints)/2, 1)
 
         # Provide steps after found
         remaining_steps = min(self.steps_since_found / S.free_steps_after_found, 1)
-
         
         # Provide spacebar presses 
         spacebar_presses = min(self.space_presses / S.free_spacebar_presses, 1)
@@ -145,7 +152,7 @@ class Episode():
             dist_scaled,
             heading_sin,
             heading_cos,
-            viewpoint_count,
+            found_vp_count,
             remaining_steps,
             spacebar_presses, 
             zoom_scaled
@@ -277,6 +284,9 @@ class Episode():
         sz_reward = box_sz * S.size_scalar
         sz_reward = min(sz_reward, S.max_sz_pts)
         reward += sz_reward
+
+        # Punish reused viewpoint
+        reward -= self.vp_used_ct * S.reused_vp_penalty
 
         # Scale rewards
         reward = np.clip(reward, -1.0, 1.0)

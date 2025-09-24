@@ -24,5 +24,5 @@ class Misc:
         lat = instance.stop.og_lat
         lon = instance.stop.og_lng
         num_views = len(instance.found_viewpoints)
-        print(f"[Step {instance.steps}] Action: '{key}' | Reward: {reward:.3f} | Viewpoints: {num_views} | Since Found: {instance.steps_since_found}")
+        print(f"[Step {instance.steps}] Action: '{key}' | Reward: {reward:.3f} | Viewpoints: {num_views} | Since Found: {instance.steps_since_found} | Fresh VP: {instance.vp_used_ct}")
         print(f"Stop: {name} ({lat}, {lon})")
