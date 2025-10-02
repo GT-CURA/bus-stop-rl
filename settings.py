@@ -10,7 +10,7 @@ class S:
     scramble_positive_stops = True      # Randomly move around after loading a positive stop
     before_scrambling = -1              # How many stops to load before starting to scramble positive stops
     num_positives = 2000                # How many positive stops to include in training
-    
+
     """ YOLO Properties"""
     num_classes = 4
     yolo_path = "assets/YOLO.pt"
@@ -35,8 +35,9 @@ class S:
     max_sz_pts = .2                     # The most amount of additional points from increasing box size
     multi_persp_reward = .3             # Points for having found multiple perpsectives of the stop
     num_persp_rewarded = 4              # Max number of perspectives the model is rewarded for finding
-    reused_vp_penalty = .15              # Penalty per viewpoint reuse 
-    stack_sz = 35                       # Number of frames stacked 
+    reused_vp_penalty = .15             # Penalty per viewpoint reuse 
+    stack_sz = 35                       # Number of frames stacked
+    min_conf = .75
 
 
     """ RPPO Properties """
@@ -63,7 +64,7 @@ class S:
     """ Don't Touch """
     bb_dim = 4                          # Vector containing bounding box cords, area, class
     features_dim = 256                  # Vector containing YOLO features
-    geo_dim = 9                         # Vector containing lat/lon
+    geo_dim = 8                         # Vector containing lat/lon
     frame_dim = features_dim + bbs_kept * (bb_dim + num_classes) + geo_dim
     from datetime import datetime
     log_dir = f"{save_folder}/{datetime.now().strftime('%m-%d_%H-%M-%S')}/"

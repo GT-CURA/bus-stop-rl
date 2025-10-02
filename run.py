@@ -9,15 +9,14 @@ from resources.custom_policies import StopMLPPolicy
 from rl import StreetView, StreetViewEnv
 from settings import S 
 from resources.loader import StopLoader
-from resources.server import start_server
 
 def make_env(path: str):
     # Create streetview and loader
     sv = StreetView()
-    stop_loader = StopLoader(sv, scramble_pos=False)
+    stop_loader = StopLoader(sv)
 
     # Load stops, launch SV
-    stop_loader.load_stops(path, shuffle_stops=True, num_positives=1700)
+    stop_loader.load_stops(path)
     sv.launch()
 
     # Pass YOLO to loader :(
@@ -89,7 +88,5 @@ def infer(model_path: str, stops_path: str, num_episodes:int):
             done = done[0]
 
 if __name__ == "__main__":
-    start_server(port=5000)
-
     train("models/PPO", "assets/all_stops.csv")
     # infer("53248", "assets/all_stops.csv", 200)

@@ -39,10 +39,14 @@ class StopDetector:
             label = self.model.names[int(box.cls)]
             conf = float(box.conf)
             boxes[label] = conf
+
             # Take best evidence of a sign/shelter
             if label in {"shelter", "sign"}:
                 primary_score = max(primary_score, conf)
-                found = True
+
+                # Mark as found if meets min conf 
+                if conf > S.min_conf:
+                    found = True
 
                 # Determine if this is the "biggest" evidence of a stop
                 box_size = float(box.xywhn[0][2] * box.xywhn[0][3])
@@ -75,17 +79,12 @@ class StopDetector:
             # Get detections
             boxes = output.boxes
             det_vecs = []
-            found = False
 
             # Go through as many bounding boxes as are to be kept
             if boxes is not None and len(boxes) > 0:
                 for i, box in enumerate(boxes):
                     if i >= S.bbs_kept:
                         break
-                    
-                    # Check if found :(
-                    if self.model.names[int(box.cls)] in {"shelter", "sign"}:
-                        found = True
 
                     # Bounding box info
                     x1, y1, x2, y2 = box.xyxyn[0].cpu().numpy()
@@ -116,4 +115,4 @@ class StopDetector:
 
             # Flatten vector
             box_flat = det_vecs.flatten()
-            return np.concatenate([pooled_feats, box_flat]), found
+            return np.concatenate([pooled_feats, box_flat])
