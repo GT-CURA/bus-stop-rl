@@ -268,6 +268,33 @@ class Requests:
         if pic_dims:
             self.pic_len = pic_dims[0]
             self.pic_height = pic_dims[1]
+
+    def pull_image(self, pic: Pic):
+        if not pic.pano_id:
+            self.pull_pano_info(pic)
+        if S.request_msgs: print("[Requests] Pulling thumbnail")
+        for tries in range(10):
+            time.sleep(S.sleep_time)
+            url = f"https://streetviewpixels-pa.googleapis.com/v1/thumbnail?cb_client=maps_sv.tactile&w=640&h=640&panoid={pic.pano_id}&yaw={pic.heading}&pitch=0.00"
+            try:
+                response = requests.get(url, timeout=10)
+                content_type = response.headers.get('Content-Type', '')
+                # If API returns error image or no content
+                if response.status_code == 400:
+                    print("[INFO] Got 400 error, falling back to old_pull_img")
+                    return self.old_pull_img(pic)
+                if 'image/jpeg' not in content_type or not response.content or len(response.content) < 5000:
+                    print(f"[Try {tries+1}] Invalid image, retrying in 3 seconds...")
+                    time.sleep(3)
+                    continue 
+                else:
+                    break
+            except RequestException as e:
+                print(f"[Try {tries+1}] Request failed: {e}. Retrying in 3 seconds...")
+                time.sleep(3)
+                continue
+        if S.request_msgs:  print("[Requests] Done pulling thumbnail.")
+        return response.content
     
     def old_pull_img(self, pic: Pic):
         if S.request_msgs: print("Pulling image")

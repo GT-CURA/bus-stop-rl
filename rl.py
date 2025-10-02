@@ -54,7 +54,9 @@ class StreetViewEnv(gym.Env):
         return features, {}
 
     def step(self, action):
-        sleep(2)
+        # Sleep for a sec
+        sleep(1)
+        
         # Get key, take screenshot
         done = False
         key = S.action_map[action]
@@ -87,7 +89,7 @@ class Episode():
         self.amenity_scores = {}
         self.stop = stop
         self.steps_since_found = 0
-        self.found_viewpoints = []
+        self.prev_move = None
         self.viewpoints = {}
         self.vp_used_ct = 0
         self.stop_detector = stop_detector
@@ -99,7 +101,7 @@ class Episode():
 
     def get_features(self, img, output, pic):
         # Get features, bb info from stop detector
-        yolo_feats, found = self.stop_detector.extract_features(img, output)
+        yolo_feats = self.stop_detector.extract_features(img, output)
 
         # Get spatial info from SV URL
         lat, lng, heading = pic.lat, pic.lng, pic.heading
@@ -120,12 +122,11 @@ class Episode():
         heading_sin = np.sin(delta_heading)
         heading_cos = np.cos(delta_heading)
 
-        # Zoom count 
-        zoom_amt = min(self.zoom_amt / 2, 1)
-        zoom_scaled = zoom_amt * 2 -1
+        # Handle zoming
+        zoom_amt = min(self.zoom_amt / 3, 1)
 
         # Create viewpoint
-        vp = (lat, lng, round(heading, 1), self.zoom_amt)
+        vp = (lat, lng, heading)
 
         # Add to all viewpoints 
         if vp not in self.viewpoints:
@@ -133,13 +134,7 @@ class Episode():
             self.vp_used_ct = 0
         else:
             self.viewpoints[vp] += 1
-            self.vp_used_ct = self.viewpoints[vp]
-
-        # If a stop was detected, add this to found viewpoints
-        if found:
-            if vp not in self.found_viewpoints:
-                self.found_viewpoints.append(vp)
-        found_vp_count = min(len(self.found_viewpoints)/2, 1)
+            self.vp_used_ct = self.viewpoints[vp] - 1
 
         # Provide steps after found
         remaining_steps = min(self.steps_since_found / S.free_steps_after_found, 1)
@@ -154,22 +149,29 @@ class Episode():
             dist_scaled,
             heading_sin,
             heading_cos,
-            found_vp_count,
-            remaining_steps,
-            spacebar_presses, 
-            zoom_scaled
+            zoom_amt,
+            spacebar_presses,
+            remaining_steps, 
         ], dtype=np.float32)
 
         # Concat features
         return np.concat([yolo_feats, spatial_vec])
 
     def update(self, key, img, pic):
-        # Update steps
-        self.steps += 1 
+        # Update steps if key != enter
+        if key != "Key.enter":
+            self.steps += 1 
 
-        # Punish spacebar spamming
+        # Log space bar presses and zooms
         if key == "Key.space":
             self.space_presses += 1
+            self.zoom_amt = 0
+
+        # Update zoom level
+        if key == "=":
+            self.zoom_amt += 1
+        elif key in ["w", "s"]:
+            self.zoom_amt = 0
 
         # Run stop detector model to get conf for assessment
         output = self.stop_detector.run(img)
@@ -215,6 +217,7 @@ class Episode():
 
         # Announce results to console 
         Misc.announce(self, key, reward)
+        self.prev_move = key
         return features, reward, done
     
     def check_done(self, found):
@@ -223,13 +226,6 @@ class Episode():
             if self.steps <= S.min_steps:
                 return S.premature_end, False
             
-        # If found, don't allow without multiple perspectives (unless surpassed free steps)
-        elif len(self.found_viewpoints) < 2:
-            if self.steps_since_found > S.free_steps_after_found:
-                return -.3, True
-            else:
-                return -.4, False
-        
         # Base move on reward
         reward = S.move_on_reward
 
@@ -287,8 +283,14 @@ class Episode():
         sz_reward = min(sz_reward, S.max_sz_pts)
         reward += sz_reward
 
-        # Punish reused viewpoint
-        reward -= self.vp_used_ct * S.reused_vp_penalty
+        # Punish reused viewpoint, exempting zooms (outside of spins) and space
+        if self.vp_used_ct > 0:
+            if key != "Key.space":
+                if self.zoom_amt > 0:
+                    if self.prev_move not in ["w","s"]:
+                        reward -= self.vp_used_ct * (S.reused_vp_penalty / 2)    
+                else:
+                    reward -= self.vp_used_ct * S.reused_vp_penalty    
 
         # Scale rewards
         reward = np.clip(reward, -1.0, 1.0)

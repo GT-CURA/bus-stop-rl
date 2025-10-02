@@ -5,6 +5,12 @@ class S:
     sleep_time = 1                      # Sleep between requests
     request_msgs = False
 
+    """ Stop Loader Properties """
+    shuffle_stops = True
+    scramble_positive_stops = True      # Randomly move around after loading a positive stop
+    before_scrambling = -1              # How many stops to load before starting to scramble positive stops
+    num_positives = 2000                # How many positive stops to include in training
+    
     """ YOLO Properties"""
     num_classes = 4
     yolo_path = "assets/YOLO.pt"

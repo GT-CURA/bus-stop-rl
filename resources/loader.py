@@ -1,19 +1,20 @@
-from settings import S 
 import json
 from random import sample, shuffle, randint
 from resources.stop import Stop
 from resources.stop_detector import StopDetector
 import csv
+from resources.streetview import StreetView
+from settings import S
+
 class StopLoader:
 
-    def __init__(self, streetview, scramble_pos=False):
+    def __init__(self, streetview: StreetView):
         self.sv = streetview
         self.index = 0
         self.stops = None
-        self.scramble_pos = scramble_pos
         self.stop_detector: StopDetector = None
         
-    def load_stops(self, path: str, shuffle_stops = True, num_positives=0, ignore_path: str = None):
+    def load_stops(self, path: str, ignore_path: str = None):
         # Find which stops to ignore if specified
         if ignore_path: 
             with open(ignore_path) as f:
@@ -67,15 +68,15 @@ class StopLoader:
                     pos.append(stop)
 
             # Include positives if requested 
-            if num_positives:
-                stops.extend(sample(pos, num_positives))
+            if S.num_positives:
+                stops.extend(sample(pos, S.num_positives))
         
         # Shuffle if requested
-        if shuffle_stops:
+        if S.shuffle_stops:
             shuffle(stops)
         self.stops = stops
 
-    def load_stop(self, stop: Stop = None, wiggle_mouse=True):
+    def load_stop(self, stop: Stop = None):
         # Automatically pull next stop
         if not stop: 
             stop = self.stops[self.index]
@@ -89,9 +90,10 @@ class StopLoader:
             self.load_stop()
             return stop
 
-        # If stop is a positive, scramble
-        if not stop.false_negative and self.scramble_pos:
-            self.scramble_positive()
+        # After 150 stops, if stop is a positive, scramble
+        if self.index > S.before_scrambling:
+            if not stop.false_negative and S.scramble_positive_stops:
+                self.scramble_positive()
 
         # Tell SV to log initial position
         self.sv.set_start()
@@ -128,4 +130,4 @@ class StopLoader:
 
     def press_loop(self, action: str, num: int):
         for i in range(num):
-            self.sv.do_action(action[0], pull_img=False)
+            self.sv.do_action(action[0])
