@@ -9,6 +9,7 @@ from resources.custom_policies import StopMLPPolicy
 from rl import StreetView, StreetViewEnv
 from settings import S 
 from resources.loader import StopLoader
+from resources.server import start_server
 
 def make_env(path: str):
     # Create streetview and loader
@@ -88,5 +89,6 @@ def infer(model_path: str, stops_path: str, num_episodes:int):
             done = done[0]
 
 if __name__ == "__main__":
-    train("models/PPO", "assets/all_stops.csv")
+    start_server(port=5000)
+    train("models/PPO", "assets/all_stops.csv", "49512")
     # infer("53248", "assets/all_stops.csv", 200)

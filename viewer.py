@@ -2,12 +2,20 @@ import keyboard
 import time
 from resources.streetview import StreetView, Stop
 from resources.server import start_server
+from cv2 import imwrite
 
 DEFAULT_LAT = 33.786315
 DEFAULT_LNG = -84.407420
 START_HEADING = 90
 
 # === Image Navigator Thread ===
+vps = []
+def get_vp(sv):
+    # Get spatial info from SV URL
+    pic = sv.current_pic
+    lat, lng, heading = pic.lat, pic.lng, pic.heading
+    vps.append((round(lat, 6), round(lng, 6), round(heading) % 360))
+
 def streetview_control():
     sv = StreetView()
     sv.launch("key.txt")
@@ -37,8 +45,9 @@ def streetview_control():
             if action:
                 print(f"Doing action: {action}")
                 sv.do_action(action)
-                sv.get_img()
-                time.sleep(0.25)
+                img = sv.get_img()
+                get_vp(sv)
+                imwrite("resources/static/frame.jpg", img)
 
             time.sleep(0.05)
 

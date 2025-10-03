@@ -123,10 +123,10 @@ class Episode():
         heading_cos = np.cos(delta_heading)
 
         # Handle zoming
-        zoom_amt = min(self.zoom_amt / 3, 1)
+        zoom_amt = min(self.zoom_amt / 2, 1)
 
         # Create viewpoint
-        vp = (lat, lng, heading)
+        vp = (round(lat, 6), round(lng, 6), round(heading) % 360)
 
         # Add to all viewpoints 
         if vp not in self.viewpoints:
@@ -284,13 +284,12 @@ class Episode():
         reward += sz_reward
 
         # Punish reused viewpoint, exempting zooms (outside of spins) and space
-        if self.vp_used_ct > 0:
-            if key != "Key.space":
-                if self.zoom_amt > 0:
-                    if self.prev_move not in ["w","s"]:
-                        reward -= self.vp_used_ct * (S.reused_vp_penalty / 2)    
-                else:
-                    reward -= self.vp_used_ct * S.reused_vp_penalty    
+        if self.vp_used_ct > 0 and key != "Key.space":
+            if self.zoom_amt > 0:
+                if self.prev_move not in ["w","s"]:
+                    reward -= self.vp_used_ct * (S.reused_vp_penalty / 2)    
+            else:
+                reward -= self.vp_used_ct * S.reused_vp_penalty    
 
         # Scale rewards
         reward = np.clip(reward, -1.0, 1.0)
