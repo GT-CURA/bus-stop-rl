@@ -14,7 +14,9 @@ def get_vp(sv):
     # Get spatial info from SV URL
     pic = sv.current_pic
     lat, lng, heading = pic.lat, pic.lng, pic.heading
-    vps.append((round(lat, 6), round(lng, 6), round(heading) % 360))
+    vp = (round(lat, 6), round(lng, 6), round(heading) % 360)
+    vps.append(vp)
+    print(vp)
 
 def streetview_control():
     sv = StreetView()

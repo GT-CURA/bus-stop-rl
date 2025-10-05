@@ -20,7 +20,6 @@ class S:
     img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 
     max_steps = 35                      # Max number of steps before forcibly moved to next stop
     min_steps = 25                      # How many steps the model must take before giving up on a stop            
-    batch_size = 10
     dampen_scalor = .6                  # How much each score is dampened by
     premature_end = -.7                 # The 'punishment' score model receives for ending early
     consecutive_boost = .2              # How much the model is rewarded for consecutive observations of a stop
@@ -38,7 +37,7 @@ class S:
     min_conf = .75                      # The minimum confidence value o
 
 
-    """ RPPO Properties """
+    """ PPO Properties """
     bbs_kept = 3                        # How many of the highest conf bounding boxes will be kept per frame
     action_map = {
         0: "w",
