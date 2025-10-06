@@ -2,7 +2,6 @@ from dataclasses import dataclass
 import requests 
 from resources.stop import Stop
 from requests.exceptions import RequestException
-# from playwright.sync_api import sync_playwright
 import json
 from settings import S
 import numpy as np
@@ -15,7 +14,6 @@ import re
 
 class StreetView:
     def __init__(self):
-        self.key: str
         self.reqs: Requests
         self.current_img = None
         self.start_stop: Stop
@@ -25,8 +23,7 @@ class StreetView:
     def launch(self, key_path = "key.txt"):
         """ Read key and build requests class (handles interfacing with API)"""
         # Read key, start requests
-        key = open(key_path, "r").read()
-        self.reqs = Requests(key, [640,640])
+        self.reqs = Requests()
 
     def goto_pt(self, stop: Stop = None):
         """ Used by loader class to pull initial image of point. """
@@ -71,10 +68,12 @@ class StreetView:
         # Rotate counterclockwise
         if action == 'a':
             self.current_pic.heading -= S.rotate_amt
-        
+            self.current_pic.heading = self.current_pic.heading % 360
+            
         # Rotate clockwise
         elif action == 'd':
             self.current_pic.heading += S.rotate_amt
+            self.current_pic.heading = self.current_pic.heading % 360
 
         # Move forwards
         elif action == 'w':
@@ -262,12 +261,27 @@ class Pic:
         return f"{self.lat},{self.lng}"
 
 class Requests:
-    def __init__(self, key: str, pic_dims, debug = False):
-        self.key = key
-        self.debug = debug
-        if pic_dims:
-            self.pic_len = pic_dims[0]
-            self.pic_height = pic_dims[1]
+    from pathlib import Path
+import json
+
+class Requests:
+    def __init__(self):
+        self.max_uses_per_key = 9000
+        self.keys = []
+        self.current_key_index = 0
+        self.counter_path = Path(f"{S.log_dir}/api_calls.json")
+        
+        # Load keys
+        with open(S.key_path, "r") as f:
+            self.keys = [k.strip() for k in f.read().split(",") if k.strip()]
+
+        if not self.keys:
+            raise ValueError("No API keys provided.")
+
+        # Load call counts
+        self._load_usage_counts()
+        self._rotate_key()
+
 
     def pull_image(self, pic: Pic):
         if not pic.pano_id:
@@ -285,37 +299,28 @@ class Requests:
                     return self.old_pull_img(pic)
                 if 'image/jpeg' not in content_type or not response.content or len(response.content) < 5000:
                     print(f"[Try {tries+1}] Invalid image, retrying in 3 seconds...")
-                    time.sleep(3)
+                    time.sleep(5)
                     continue 
                 else:
                     break
             except RequestException as e:
                 print(f"[Try {tries+1}] Request failed: {e}. Retrying in 3 seconds...")
-                time.sleep(3)
+                time.sleep(5)
                 continue
         if S.request_msgs:  print("[Requests] Done pulling thumbnail.")
         return response.content
     
     def old_pull_img(self, pic: Pic):
-        if S.request_msgs: print("Pulling image")
-        path = Path(f"{S.log_dir}/api_calls.txt")
-        path.parent.mkdir(parents=True, exist_ok=True)
+        if S.request_msgs: print("[Requests] Pulling image")
         
-        # If file exists, read and increment
-        if path.exists():
-            with open(path, "r+") as f:
-                try:
-                    count = int(f.read())
-                except ValueError:
-                    count = 0
-                count += 1
-                f.seek(0)
-                f.write(str(count))
-                f.truncate()
-        else:
-            # Create file and initialize to 1
-            with open(path, "w") as f:
-                f.write("1")
+        # Increment usage count for current key
+        self.usage_counts[self.key] += 1
+        self._save_usage_counts()
+
+        # Rotate key if usage exceeds max allowed
+        if self.usage_counts[self.key] >= self.max_uses_per_key:
+            print(f"[KEY ROTATION] {self.key} reached {self.max_uses_per_key} uses. Rotating...")
+            self._rotate_key()
 
         # Add zoom level (FOV)
         zoom_to_fov = {0: 90, 1: 60, 2: 30}
@@ -326,7 +331,7 @@ class Requests:
             'key': self.key,
             'return_error_code': True,
             'outdoor': True,
-            'size': f"{self.pic_len}x{self.pic_height}",
+            'size': f"{S.img_width}x{S.img_height}",
             'fov':fov}
 
         # Add either pano ID or location
@@ -393,7 +398,7 @@ class Requests:
 
     def _pull_response(self, params, context, base, coords):
         # Print a sumamry of the request if debugging 
-        if self.debug: print(f"[REQUEST] {context} for {coords}")
+        if S.request_msgs: print(f"[REQUEST] {context} for {coords}")
         
         # Retry several times
         for i in range(10):
@@ -413,3 +418,31 @@ class Requests:
         else:
             response.close()
             return Error(context, f"({response.status_code}): {response.text}")
+    
+    def _load_usage_counts(self):
+        if self.counter_path.exists():
+            try:
+                with open(self.counter_path, "r") as f:
+                    self.usage_counts = json.load(f)
+            except json.JSONDecodeError:
+                print("[Warning] Could not parse api_calls.json, reinitializing...")
+                self.usage_counts = {}
+        else:
+            self.usage_counts = {}
+
+        # Ensure all keys have an entry
+        for key in self.keys:
+            if key not in self.usage_counts:
+                self.usage_counts[key] = 0
+
+    def _save_usage_counts(self):
+        with open(self.counter_path, "w") as f:
+            json.dump(self.usage_counts, f, indent=2)
+
+    def _rotate_key(self):
+        for i, key in enumerate(self.keys):
+            if self.usage_counts.get(key, 0) < self.max_uses_per_key:
+                self.key = key
+                self.current_key_index = i
+                return
+        raise RuntimeError("All API keys have exceeded their limits.")

@@ -4,6 +4,9 @@ class S:
     wait_time = 2                       # How long to wait between images
     sleep_time = 1                      # Sleep between requests
     request_msgs = False
+    key_path = "keys.txt"
+    img_height = 640
+    img_width = 640
 
     """ Stop Loader Properties """
     shuffle_stops = True                
@@ -19,7 +22,7 @@ class S:
     """ RL Properties """
     img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 
     max_steps = 35                      # Max number of steps before forcibly moved to next stop
-    min_steps = 25                      # How many steps the model must take before giving up on a stop            
+    min_steps = 30                      # How many steps the model must take before giving up on a stop            
     dampen_scalor = .6                  # How much each score is dampened by
     premature_end = -.7                 # The 'punishment' score model receives for ending early
     consecutive_boost = .2              # How much the model is rewarded for consecutive observations of a stop
