@@ -270,6 +270,10 @@ class Episode():
             if self.space_presses > S.free_spacebar_presses:
                 reward -= S.spacebar_penalty * self.space_presses 
 
+        # Add bonus for finding stop 
+        if found: 
+            reward += S.found_boost
+            
         # Add bonus if already found
         if found and self.found:
             reward += S.consecutive_boost

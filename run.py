@@ -90,5 +90,5 @@ def infer(model_path: str, stops_path: str, num_episodes:int):
 
 if __name__ == "__main__":
     start_server(port=5000)
-    train("models/PPO", "assets/all_stops.csv", "62464")
+    train("models/PPO", "assets/all_stops.csv")
     # infer("53248", "assets/all_stops.csv", 200)
