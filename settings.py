@@ -1,14 +1,14 @@
 class S: 
     """ Streetview Properties """
-    show_imgs = True                    # Whether to display images
+    key_path = "keys.txt"               # Change to your API key location
+    show_imgs = False                   # Whether to display images on web server
     wait_time = 2                       # How long to wait between images
     sleep_time = 1                      # Sleep between requests
-    request_msgs = False
-    key_path = "keys.txt"
+    request_msgs = True                 # Send messages on start and completion of requests
+    max_retries = 5                     # Max number of retries for a failed request
     img_height = 640
     img_width = 640
-    max_retries = 5                     # Max number of retries for a failed request
-
+    
     """ Stop Loader Properties """
     shuffle_stops = True                
     scramble_positive_stops = True      # Randomly move around after loading a positive stop

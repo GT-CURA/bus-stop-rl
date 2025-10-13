@@ -89,6 +89,8 @@ def infer(model_path: str, stops_path: str, num_episodes:int):
             done = done[0]
 
 if __name__ == "__main__":
-    start_server(port=5000)
+    if S.show_imgs: 
+        start_server(port=5000)
+        
     train("models/PPO", "assets/all_stops.csv")
     # infer("53248", "assets/all_stops.csv", 200)

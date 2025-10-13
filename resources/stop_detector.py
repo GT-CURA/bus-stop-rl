@@ -3,6 +3,8 @@ from ultralytics import YOLO
 import torch
 import cv2
 import numpy as np
+from threading import Thread
+from queue import Queue
 
 # A wrapper for the YOLO model trained to detect stops
 class StopDetector:
@@ -19,7 +21,7 @@ class StopDetector:
         output = self.model(img)[0]
 
         # Save output
-        output.save("resources/static/frame.jpg")
+        if S.show_imgs: output.save("resources/static/frame.jpg")
         return output
 
     def score_output(self, output):

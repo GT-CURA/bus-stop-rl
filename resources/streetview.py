@@ -239,8 +239,7 @@ class Requests:
         if response.status_code == 400:
             print("[Requests] Got 400 error, falling back to old_pull_img")
             return self.old_pull_img(pic)
-            
-        if S.request_msgs:  print("[Requests] Done pulling thumbnail.")
+        
         return response.content
     
     def old_pull_img(self, pic: Pic):
@@ -363,13 +362,16 @@ class Requests:
         for attempt in range(1, S.max_retries + 1):
             try:
                 # Submit request
-                response = requests.request(url, params=params, headers=headers, timeout=10)
+                response = requests.request(method="GET", url=url, params=params, headers=headers, timeout=10)
                 response.raise_for_status()
 
                 # Detect throttling. Return response
                 if response.status_code == 403 or b"quota" in response.content.lower():
                     time.sleep(1.5 * attempt)
                     continue
+
+                # Success
+                if S.request_msgs: print(f"[Requests] Finished {context}")
                 return response
 
             except (ReadTimeout, ConnectionError):
