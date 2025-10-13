@@ -147,7 +147,7 @@ class Episode():
             heading_cos,
             zoom_amt,
             spacebar_presses,
-            remaining_steps, 
+            remaining_steps
         ], dtype=np.float32)
 
         # Concat features
@@ -273,7 +273,7 @@ class Episode():
         # Add bonus for finding stop 
         if found: 
             reward += S.found_boost
-            
+
         # Add bonus if already found
         if found and self.found:
             reward += S.consecutive_boost

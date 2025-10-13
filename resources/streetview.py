@@ -266,7 +266,7 @@ import json
 
 class Requests:
     def __init__(self):
-        self.max_uses_per_key = 9000
+        self.max_uses_per_key = 1
         self.keys = []
         self.current_key_index = 0
         self.counter_path = Path(f"{S.log_dir}/api_calls.json")
