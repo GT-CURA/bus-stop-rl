@@ -7,6 +7,7 @@ class S:
     key_path = "keys.txt"
     img_height = 640
     img_width = 640
+    max_retries = 5                     # Max number of retries for a failed request
 
     """ Stop Loader Properties """
     shuffle_stops = True                

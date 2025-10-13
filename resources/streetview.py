@@ -7,10 +7,11 @@ from settings import S
 import numpy as np
 import math
 from pathlib import Path
-from requests.exceptions import ReadTimeout
+from requests.exceptions import RequestException, ReadTimeout, HTTPError, ConnectionError
 import time
 import cv2
 import re
+from random import uniform
 
 class StreetView:
     def __init__(self):
@@ -134,7 +135,7 @@ class StreetView:
         if response == False or pic.pano_id == self.current_pic.pano_id: 
     
             # If pano wasn't found, try to get street dir 
-            street_dir = self._get_street_dir()
+            street_dir = self.reqs.get_street_dir(self.current_pic)
             if street_dir:
                 target_dir = self.current_pic.heading
 
@@ -168,44 +169,6 @@ class StreetView:
         # Update current pic
         self.current_pic = pic
 
-    def _get_street_dir(self):
-            # Build request URL
-            url = ("https://maps.googleapis.com/maps/api/js/GeoPhotoService.SingleImageSearch"
-                    "?pb=!1m5!1sapiv3!5sUS!11m2!1m1!1b0!2m4!1m2!3d{lat}!4d{lon}!2d50!3m10"
-                    "!2m2!1sen!2sGB!9m1!1e2!11m4!1m3!1e2!2b1!3e2!4m10!1e1!1e2!1e3!1e4!1e8!1e6!5m1!1e2!6m1!1e2"
-                    "&callback=callbackfunc"
-                ).format(lat=self.current_pic.lat, lon=self.current_pic.lng)
-            
-            # Build request header
-            headers = {
-                    "User-Agent": "Mozilla/5.0",
-                    "Accept": "*/*",
-                    "Referer": "https://maps.google.com/",
-                }
-            
-            # Send request
-            try:
-                r = requests.get(url, headers=headers, timeout=10)
-            except Exception as e:
-                return None
-
-            # Strip JSON from payload text
-            m = re.search(rf"{re.escape('callbackfunc')}\s*\(\s*(.*)\s*\)\s*;?\s*$", r.text, re.DOTALL)
-            if not m:
-                return None
-            data = json.loads(m.group(1))
-
-            # Check if we found anything
-            if data == [[5, "generic", "Search returned no images."]]:
-                return None
-
-            # Pull out heading
-            subset = data[1][5][0]
-            raw_panos = subset[3][0]
-            raw_panos = raw_panos[::-1]
-            heading = float(raw_panos[0][2][2][0])
-            return heading
-
     def _zoom(self):
         # See if we're at max zoom level
         if self.current_pic.zoom_lvl == 2:
@@ -234,19 +197,6 @@ class StreetView:
         pic.heading = heading
         
 @dataclass
-class Error:
-    # I have OCD 
-    context: str
-    msg: str
-
-    def __repr__(self):
-        return f"{self.msg} while {self.context}."
-    
-    def alert(self, debug:bool):
-        if debug: 
-            print(f"[ERROR] {self.context} while {self.context}")
-
-@dataclass
 class Pic:
     """ Represents pictues, of which there can be multiple for a given POI. You 
     Probably don't need to interact with these. """
@@ -259,10 +209,6 @@ class Pic:
 
     def get_coords(self):
         return f"{self.lat},{self.lng}"
-
-class Requests:
-    from pathlib import Path
-import json
 
 class Requests:
     def __init__(self):
@@ -282,37 +228,22 @@ class Requests:
         self._load_usage_counts()
         self._rotate_key()
 
-
     def pull_image(self, pic: Pic):
+        # Get pano ID if we don't have it
         if not pic.pano_id:
             self.pull_pano_info(pic)
-        if S.request_msgs: print("[Requests] Pulling thumbnail")
-        for tries in range(10):
-            time.sleep(S.sleep_time)
-            url = f"https://streetviewpixels-pa.googleapis.com/v1/thumbnail?cb_client=maps_sv.tactile&w=640&h=640&panoid={pic.pano_id}&yaw={pic.heading}&pitch=0.00"
-            try:
-                response = requests.get(url, timeout=10)
-                content_type = response.headers.get('Content-Type', '')
-                # If API returns error image or no content
-                if response.status_code == 400:
-                    print("[INFO] Got 400 error, falling back to old_pull_img")
-                    return self.old_pull_img(pic)
-                if 'image/jpeg' not in content_type or not response.content or len(response.content) < 5000:
-                    print(f"[Try {tries+1}] Invalid image, retrying in 3 seconds...")
-                    time.sleep(5)
-                    continue 
-                else:
-                    break
-            except RequestException as e:
-                print(f"[Try {tries+1}] Request failed: {e}. Retrying in 3 seconds...")
-                time.sleep(5)
-                continue
+
+        url = f"https://streetviewpixels-pa.googleapis.com/v1/thumbnail?cb_client=maps_sv.tactile&w=640&h=640&panoid={pic.pano_id}&yaw={pic.heading}&pitch=0.00"
+        response = self._request(url, context="Pulling Thumbnail")
+        # If API returns error image or no content
+        if response.status_code == 400:
+            print("[Requests] Got 400 error, falling back to old_pull_img")
+            return self.old_pull_img(pic)
+            
         if S.request_msgs:  print("[Requests] Done pulling thumbnail.")
         return response.content
     
     def old_pull_img(self, pic: Pic):
-        if S.request_msgs: print("[Requests] Pulling image")
-        
         # Increment usage count for current key
         self.usage_counts[self.key] += 1
         self._save_usage_counts()
@@ -345,25 +276,20 @@ class Requests:
             pic_params['heading'] = pic.heading
 
         # Pull response 
-        response = self._pull_response(
+        response = self._request(
             params = pic_params,
-            context = "Pulling image",
-            coords = pic.get_coords(),
-            base = 'https://maps.googleapis.com/maps/api/streetview?')
+            context = "Pulling Image",
+            url = 'https://maps.googleapis.com/maps/api/streetview?')
         
         # Close response, return content 
         content = response.content
         response.close()
-        if S.request_msgs: print("[Requests] Done pulling image.")
         return content
 
     def pull_pano_info(self, pic: Pic):
         """
         Extract coordiantes from a pano's metadata, used to determine heading
         """
-
-        if S.request_msgs: print("[Requests] Pulling metadata")
-        time.sleep(.2)
         # Params for request
         params = {
             'key': self.key,
@@ -376,11 +302,10 @@ class Requests:
             params['location'] = pic.get_coords()
             
         # Send a request
-        response = self._pull_response(
+        response = self._request(
             params=params,
-            coords=pic.get_coords(),
-            context="Pulling metadata",
-            base='https://maps.googleapis.com/maps/api/streetview/metadata?')
+            context="Pulling Metadata",
+            url='https://maps.googleapis.com/maps/api/streetview/metadata?')
         
         # Handle finding no results
         if b'ZERO_RESULTS' in response.content:
@@ -393,32 +318,87 @@ class Requests:
         pic.pano_id = response.json().get("pano_id")
         pic.date = response.json().get("date")
         response.close()
-        if S.request_msgs: print("[Requests] Done pulling metadata.")
         return True
 
-    def _pull_response(self, params, context, base, coords):
-        # Print a sumamry of the request if debugging 
-        if S.request_msgs: print(f"[REQUEST] {context} for {coords}")
+    def get_street_dir(self, pic):
+        # Build request URL
+        url = ("https://maps.googleapis.com/maps/api/js/GeoPhotoService.SingleImageSearch"
+                "?pb=!1m5!1sapiv3!5sUS!11m2!1m1!1b0!2m4!1m2!3d{lat}!4d{lng}!2d50!3m10"
+                "!2m2!1sen!2sGB!9m1!1e2!11m4!1m3!1e2!2b1!3e2!4m10!1e1!1e2!1e3!1e4!1e8!1e6!5m1!1e2!6m1!1e2"
+                "&callback=callbackfunc"
+            ).format(lat=pic.lat, lng=pic.lng)
         
-        # Retry several times
-        for i in range(10):
-            try:
-                response = requests.get(base, params=params, timeout=10)
-                response.raise_for_status()
-                return response
-            except ReadTimeout:
-                print(f"[Retry {i+1}] Waiting 5 seconds")
-                time.sleep(5)
+        # Build request header
+        headers = {
+                "User-Agent": "Mozilla/5.0",
+                "Accept": "*/*",
+                "Referer": "https://maps.google.com/",
+        }
+        
+        # Send request
+        r = self._request(url=url, headers=headers, context="Pulling Street Dir")
 
-        # Check for empty response 
-        if not response.content:
-            return Error(context, "empty response")
-        
-        # Return error if the request was not successful
-        else:
-            response.close()
-            return Error(context, f"({response.status_code}): {response.text}")
+        # Strip JSON from payload text
+        m = re.search(rf"{re.escape('callbackfunc')}\s*\(\s*(.*)\s*\)\s*;?\s*$", r.text, re.DOTALL)
+        if not m:
+            return None
+        data = json.loads(m.group(1))
+
+        # Check if we found anything
+        if data == [[5, "generic", "Search returned no images."]]:
+            return None
+
+        # Pull out heading
+        subset = data[1][5][0]
+        raw_panos = subset[3][0]
+        raw_panos = raw_panos[::-1]
+        heading = float(raw_panos[0][2][2][0])
+        return heading
     
+    def _request(self, url, params=None, headers=None, context=""):
+        """ Contains all the logic for making a request. """
+
+        # Debugging
+        if S.request_msgs: print(f"[Requests] {context}")
+        for attempt in range(1, S.max_retries + 1):
+            try:
+                # Submit request
+                response = requests.request(url, params=params, headers=headers, timeout=10)
+                response.raise_for_status()
+
+                # Detect throttling. Return response
+                if response.status_code == 403 or b"quota" in response.content.lower():
+                    time.sleep(1.5 * attempt)
+                    continue
+                return response
+
+            except (ReadTimeout, ConnectionError):
+                print(f"[{context}] Timeout or connection error, retrying.")
+            except HTTPError as e:
+                print(f"[{context}] HTTPError {e.response.status_code}: {e.response.text}")
+                if e.response.status_code in (429, 500, 503):
+                    time.sleep(1.5 * attempt)
+                    continue
+                # Allows fallback for pulling images
+                elif e.response.status_code == 400:
+                    return response
+                else:
+                    break
+            except RequestException as e:
+                print(f"[{context}] RequestException: {e}")
+                time.sleep(1.5 * attempt)
+            except Exception as e:
+                print(f"[{context}] Error: {e}")
+                break
+            
+            # Sleep before retrying
+            sleep_time = 1.5 * attempt + uniform(0, 0.5)
+            time.sleep(sleep_time)
+
+        print(f"[{context}] Failed after {attempt} tries.")
+        return None
+    
+    """" Dealing with multiple API keys """
     def _load_usage_counts(self):
         if self.counter_path.exists():
             try:
@@ -434,7 +414,7 @@ class Requests:
         for key in self.keys:
             if key not in self.usage_counts:
                 self.usage_counts[key] = 0
-
+    
     def _save_usage_counts(self):
         with open(self.counter_path, "w") as f:
             json.dump(self.usage_counts, f, indent=2)
