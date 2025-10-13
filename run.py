@@ -93,4 +93,4 @@ if __name__ == "__main__":
         start_server(port=5000)
 
     # Run training loop here!
-    train("models/PPO", "assets/all_stops.csv", "36864")
+    train("models/PPO", "assets/all_stops.csv", "81920")

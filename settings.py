@@ -4,6 +4,7 @@ class S:
     show_imgs = False                   # Whether to display images on web server
     request_msgs = False                # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
+    wait_time = 0                       # Wait time in seconds between steps
     img_height = 640
     img_width = 640
     
