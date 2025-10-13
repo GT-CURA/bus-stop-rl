@@ -10,7 +10,7 @@ class S:
     """ Stop Loader Properties """
     shuffle_stops = True                
     scramble_positive_stops = True      # Randomly move around after loading a positive stop
-    before_scrambling = 50              # How many stops to load before starting to scramble positive stops
+    before_scrambling =-1               # How many stops to load before starting to scramble positive stops
     num_positives = 8000                # How many positive stops to include in training
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop
 
