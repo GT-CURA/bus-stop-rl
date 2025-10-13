@@ -21,7 +21,6 @@ class LogManager:
         self.flush_thread.start()
 
     def add(self, instance):
-        """Add a single episode record to the log buffer."""
         record = {
             "place_name": instance.stop.place_name,
             "latitude": instance.stop.og_lat,
@@ -31,32 +30,40 @@ class LogManager:
             "steps_taken": instance.steps
         }
 
+        should_flush = False
         with self.lock:
             self.buffer.append(record)
             if len(self.buffer) >= self.flush_every:
-                self._flush_to_disk()
+                to_write = self.buffer[:]
+                self.buffer.clear()
+                should_flush = True
 
-    def _flush_to_disk(self):
-        if not self.buffer:
+        if should_flush:
+            self._flush_to_disk(to_write)
+
+
+    def _flush_to_disk(self, to_write=None):
+        if to_write is None:
+            with self.lock:
+                to_write = self.buffer[:]
+                self.buffer.clear()
+
+        if not to_write:
             return
 
-        with self.lock:
-            to_write = self.buffer[:]
-            self.buffer.clear()
-
-        if os.path.exists(S.log_dir):
-            try:
+        try:
+            if os.path.exists(self.path):
                 with open(self.path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-            except (json.JSONDecodeError, FileNotFoundError):
+            else:
                 data = []
-        else:
+        except (json.JSONDecodeError, FileNotFoundError):
             data = []
 
         data.extend(to_write)
-
         with open(self.path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
+
 
     def _background_flush(self):
         while not self.shutdown_flag:
@@ -64,7 +71,7 @@ class LogManager:
             self._flush_to_disk()
 
     def shutdown(self):
-        """Gracefully shut down and write any remaining logs."""
+        """Shut down and write remaining logs."""
         self.shutdown_flag = True
         self.flush_thread.join()
         self._flush_to_disk()

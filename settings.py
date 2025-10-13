@@ -2,8 +2,6 @@ class S:
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
     show_imgs = False                   # Whether to display images on web server
-    wait_time = 2                       # How long to wait between images
-    sleep_time = 1                      # Sleep between requests
     request_msgs = True                 # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
     img_height = 640
