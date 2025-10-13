@@ -190,7 +190,7 @@ class StreetView:
                 return None
 
             # Strip JSON from payload text
-            m = re.search(rf"{re.escape("callbackfunc")}\s*\(\s*(.*)\s*\)\s*;?\s*$", r.text, re.DOTALL)
+            m = re.search(rf"{re.escape('callbackfunc')}\s*\(\s*(.*)\s*\)\s*;?\s*$", r.text, re.DOTALL)
             if not m:
                 return None
             data = json.loads(m.group(1))
@@ -266,7 +266,7 @@ import json
 
 class Requests:
     def __init__(self):
-        self.max_uses_per_key = 1
+        self.max_uses_per_key = 9500
         self.keys = []
         self.current_key_index = 0
         self.counter_path = Path(f"{S.log_dir}/api_calls.json")

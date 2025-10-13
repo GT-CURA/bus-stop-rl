@@ -56,7 +56,7 @@ def train(save_path: str, stops_path: str, model_path = None):
 
     # Creates checkpoint files while training and tensorboard log
     checkpoint_callback = CheckpointCallback(
-        save_freq=1024,
+        save_freq=8192,
         save_path='./models/',
         name_prefix='PPO'
     )
@@ -66,7 +66,7 @@ def train(save_path: str, stops_path: str, model_path = None):
     model.set_logger(logger)
 
     # Begin learning
-    model.learn(total_timesteps=51200, callback=checkpoint_callback)
+    model.learn(total_timesteps=409600, callback=checkpoint_callback)
     
     # Save model, close gym
     model.save(save_path)
