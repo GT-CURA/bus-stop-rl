@@ -377,7 +377,7 @@ class Requests:
             except (ReadTimeout, ConnectionError):
                 print(f"[{context}] Timeout or connection error, retrying.")
             except HTTPError as e:
-                print(f"[{context}] HTTPError {e.response.status_code}: {e.response.text}")
+                print(f"[{context}] HTTPError {e.response.status_code}: {e.response.text[:50]}")
                 if e.response.status_code in (429, 500, 503):
                     time.sleep(1.5 * attempt)
                     continue

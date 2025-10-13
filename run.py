@@ -56,7 +56,7 @@ def train(save_path: str, stops_path: str, model_path = None):
 
     # Creates checkpoint files while training and tensorboard log
     checkpoint_callback = CheckpointCallback(
-        save_freq=8192,
+        save_freq=4096,
         save_path='./models/',
         name_prefix='PPO'
     )
