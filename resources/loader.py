@@ -91,9 +91,16 @@ class StopLoader:
             return stop
 
         # After 150 stops, if stop is a positive, scramble
-        if self.index > S.before_scrambling:
-            if not stop.false_negative and S.scramble_positive_stops:
-                self.scramble_positive()
+        if self.index > S.before_scrambling and S.scramble_positive_stops:
+                
+                # Check if stop is visible 
+                img = self.sv.get_img()
+                output = self.stop_detector.run(img)
+                best_ev = self.stop_detector.get_best_evidence(output)
+
+                # Scramble stop if best evidence of a stop exceeds .5
+                if best_ev > S.min_score_to_scramble:
+                    self.scramble_positive()
 
         # Tell SV to log initial position
         self.sv.set_start()
@@ -114,10 +121,10 @@ class StopLoader:
         # Check if stop is still visible
         img = self.sv.get_img()
         output = self.stop_detector.run(img)
-        _, found, _, _ = self.stop_detector.score_output(output)
+        best_ev = self.stop_detector.get_best_evidence(output)
 
         # Stop still visible
-        if found:
+        if best_ev > S.min_score_to_scramble:
             # Run function again if tries haven't been exhausted
             if tries < 2:
                 self.scramble_positive(tries = tries + 1)

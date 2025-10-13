@@ -116,3 +116,16 @@ class StopDetector:
             # Flatten vector
             box_flat = det_vecs.flatten()
             return np.concatenate([pooled_feats, box_flat])
+    
+    def get_best_ev(self, output):
+        # Just finds highest confidence value of a primary amenity
+        best_conf = 0.0
+
+        for box in output.boxes:
+            label = self.model.names[int(box.cls)]
+            conf = float(box.conf)
+
+            if label in {"shelter", "sign"}:
+                best_conf = max(best_conf, conf)
+
+        return best_conf
