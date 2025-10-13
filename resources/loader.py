@@ -96,7 +96,7 @@ class StopLoader:
                 # Check if stop is visible 
                 img = self.sv.get_img()
                 output = self.stop_detector.run(img)
-                best_ev = self.stop_detector.get_best_evidence(output)
+                best_ev = self.stop_detector.get_best_ev(output)
 
                 # Scramble stop if best evidence of a stop exceeds .5
                 if best_ev > S.min_score_to_scramble:
@@ -121,7 +121,7 @@ class StopLoader:
         # Check if stop is still visible
         img = self.sv.get_img()
         output = self.stop_detector.run(img)
-        best_ev = self.stop_detector.get_best_evidence(output)
+        best_ev = self.stop_detector.get_best_ev(output)
 
         # Stop still visible
         if best_ev > S.min_score_to_scramble:
