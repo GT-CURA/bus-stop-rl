@@ -337,6 +337,10 @@ class Requests:
         # Send request
         r = self._request(url=url, headers=headers, context="Pulling Street Dir")
 
+        # Catch no response
+        if r is None:
+            return None
+        
         # Strip JSON from payload text
         m = re.search(rf"{re.escape('callbackfunc')}\s*\(\s*(.*)\s*\)\s*;?\s*$", r.text, re.DOTALL)
         if not m:
