@@ -89,7 +89,7 @@ def infer(model_path: str, stops_path: str, num_episodes:int):
             done = done[0]
 
 if __name__ == "__main__":
-    if S.show_imgs: 
+    if S.run_server: 
         start_server(port=5000)
 
     # Run training loop here!
