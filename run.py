@@ -25,24 +25,24 @@ def make_env(path: str):
     stop_loader.stop_detector = env.stop_detector
     return env
 
-def train(save_path: str, stops_path: str, model_path = None):
+def train(save_path: str, stops_path: str, weights_path = None):
     """
-    Train the model, either a fresh version or from a saved path.
+    Train the agent, either a fresh version or from a saved path.
 
-    :param env: The training environment from rl module.
-    :param save_path: Path to save the model to, including checkpoints.
-    :param load_path: If resuming training, specify existsing model path.
+    :param save_path: Path to save the weights to, including checkpoints.
+    :param stops_path: Path of the csv or json of stops to train on. 
+    :param weights_path: If resuming training, specify path to pretrained weights.
     """
     vec_env = DummyVecEnv([lambda: make_env(stops_path)])
     vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Resume training 
-    if model_path:
-        model = PPO.load(model_path, env=vec_env)
+    if weights_path:
+        agent = PPO.load(weights_path, env=vec_env)
     
     else:
-        # Create PPO model
-        model = PPO(
+        # Create PPO agent
+        agent = PPO(
             policy=StopMLPPolicy,
             env=vec_env,
             verbose=1,
@@ -63,28 +63,41 @@ def train(save_path: str, stops_path: str, model_path = None):
 
     # Setup custom log
     logger = configure(S.log_dir, ["csv", "stdout"])
-    model.set_logger(logger)
+    agent.set_logger(logger)
 
     # Begin learning
-    model.learn(total_timesteps=409600, callback=checkpoint_callback)
+    agent.learn(total_timesteps=409600, callback=checkpoint_callback)
     
-    # Save model, close gym
-    model.save(save_path)
+    # Save weights, close gym
+    agent.save(save_path)
 
-def infer(model_path: str, stops_path: str, num_episodes:int):
+def infer(stops_path: str, weights_path: str):
+    """
+    Primary inference loop. Used to actually 'run' the agent on a collection of bus stops.
+
+    :param stops_path: Path of the csv or json of stops to find. 
+    :param weights_path: Path to the agent's weights, trained previously. Exclude .zip
+    """
     # Wrap environment
     vec_env = DummyVecEnv([lambda: make_env(stops_path)])
     vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
-    # Load the model
-    model = PPO.load(model_path, env=vec_env)
+    # Load the agent
+    agent = PPO.load(weights_path, env=vec_env)
 
-    # Run inference
-    for ep in range(num_episodes):
+    # Setup log
+    logger = configure(S.log_dir, ["csv", "stdout"])
+    agent.set_logger(logger)
+
+    # Go through each stop
+    num_stops = (vec_env)
+    for ep in range(num_stops):
         obs = vec_env.reset()
         done = False
+
+        # Run until agent is done
         while not done:
-            action, _ = model.predict(obs, deterministic=False)
+            action, _ = agent.predict(obs, deterministic=False)
             obs, reward, done, info = vec_env.step(action)
             done = done[0]
 
@@ -92,5 +105,5 @@ if __name__ == "__main__":
     if S.run_server: 
         start_server(port=5000)
 
-    # Run training loop here!
+    # Run training/inference loop here!
     train("models/PPO", "assets/all_stops.csv", "94208")
