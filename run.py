@@ -57,7 +57,7 @@ def train(save_path: str, stops_path: str, weights_path = None):
     # Creates checkpoint files while training and tensorboard log
     checkpoint_callback = CheckpointCallback(
         save_freq=4096,
-        save_path='./models/',
+        save_path='./weights/',
         name_prefix='PPO'
     )
 
@@ -106,4 +106,4 @@ if __name__ == "__main__":
         start_server(port=5000)
 
     # Run training/inference loop here!
-    train("models/PPO", "assets/all_stops.csv", "94208")
+    train("weights/PPO", "assets/all_stops.csv", "94208")

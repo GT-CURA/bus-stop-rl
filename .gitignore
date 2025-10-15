@@ -3,7 +3,6 @@ models/
 runs/
 key.txt
 .vscode/
-TEMP.zip
 resources/static/frame.jpg
-49512.zip
 keys.txt
+weights/
