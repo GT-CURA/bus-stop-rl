@@ -1,5 +1,5 @@
 # Bus Stop Reinforcement Learning
-Using reinforcement learning to find bus stops! 
+This project uses a Proximal Policy Optimization (PPO) algorithm to seek out bus stops on Google Street View. It uses a YOLO computer vision model to score the outcomes resulting from the choices made by the PPO agent. 
 
 ## Setup
 1. Install required packages:
