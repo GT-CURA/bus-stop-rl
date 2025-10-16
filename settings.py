@@ -1,7 +1,7 @@
 class S: 
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
-    run_server = False                  # Whether to display images on web server
+    run_server = True                  # Whether to display images on web server
     request_msgs = False                # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
     wait_time = 0                       # Wait time in seconds between steps
@@ -10,7 +10,7 @@ class S:
     
     """ Stop Loader Properties """
     shuffle_stops = True                
-    scramble_positive_stops = True      # Randomly move around after loading a positive stop
+    scramble_positive_stops = False     # Randomly move around after loading a positive stop
     before_scrambling =-1               # How many stops to load before starting to scramble positive stops
     num_positives = 8000                # How many positive stops to include in training
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop
@@ -22,7 +22,7 @@ class S:
 
     """ RL Properties """
     img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 
-    max_steps = 40                      # Max number of steps before forcibly moved to next stop
+    max_steps = 80                      # Max number of steps before forcibly moved to next stop
     min_steps = 35                      # How many steps the model must take before giving up on a stop            
     dampen_scalor = .6                  # How much each score is dampened by
     free_spacebar_presses = 2           # How many times the model can return to start (press spacebar) before being punished
@@ -55,9 +55,9 @@ class S:
         6: "Key.space"
     }
 
-    """ Logging & Screenshots """
-    save_screenshots = False           # Save screenshots of "best evidence" of each bus stop?
-    annotate_screenshots = False       # Run YOLO model to annotate screenshots?
+    """ Logging """
+    save_best_img = True               # Save imgs of "best evidence" of each bus stop?
+    annotate_screenshots = False       # Run YOLO model to annotate saved imgs?
     save_folder = "runs"
 
 

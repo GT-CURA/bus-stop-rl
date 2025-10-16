@@ -110,7 +110,7 @@ class StreetView:
         # Logs the current pic (location, heading) as starting point
         self.start_pic = self.current_pic
 
-    def _move(self, direction = 'w', dist = 8, heading = None):
+    def _move(self, direction = 'w', dist = 10, heading = None):
         def _calc_coords(heading):
             # Calculate new coordinates
             earth_radius = 6378137

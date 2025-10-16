@@ -27,7 +27,8 @@ class LogManager:
             "longitude": instance.stop.og_lng,
             "amenity_scores": instance.amenity_scores,
             "total_reward": round(instance.reward, 3),
-            "steps_taken": instance.steps
+            "steps_taken": instance.steps,
+            "date": instance.best_vp["date"]
         }
 
         should_flush = False

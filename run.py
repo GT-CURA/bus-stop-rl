@@ -23,7 +23,7 @@ def make_env(path: str):
     # Pass YOLO to loader :(
     env = StreetViewEnv(sv, stop_loader)
     stop_loader.stop_detector = env.stop_detector
-    return env
+    return env, len(stop_loader.stops)
 
 def train(save_path: str, stops_path: str, weights_path = None):
     """
@@ -33,7 +33,8 @@ def train(save_path: str, stops_path: str, weights_path = None):
     :param stops_path: Path of the csv or json of stops to train on. 
     :param weights_path: If resuming training, specify path to pretrained weights.
     """
-    vec_env = DummyVecEnv([lambda: make_env(stops_path)])
+    env, _ = make_env(stops_path)
+    vec_env = DummyVecEnv([lambda: env])
     vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Resume training 
@@ -79,7 +80,8 @@ def infer(stops_path: str, weights_path: str):
     :param weights_path: Path to the agent's weights, trained previously. Exclude .zip
     """
     # Wrap environment
-    vec_env = DummyVecEnv([lambda: make_env(stops_path)])
+    env, num_stops = make_env(stops_path)
+    vec_env = DummyVecEnv([lambda: env])
     vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Load the agent
@@ -90,7 +92,6 @@ def infer(stops_path: str, weights_path: str):
     agent.set_logger(logger)
 
     # Go through each stop
-    num_stops = (vec_env)
     for ep in range(num_stops):
         obs = vec_env.reset()
         done = False
@@ -106,4 +107,5 @@ if __name__ == "__main__":
         start_server(port=5000)
 
     # Run training/inference loop here!
-    train("weights/PPO", "assets/all_stops.csv", "94208")
+    # train("weights/PPO", "assets/all_stops.csv", "266240")
+    infer("assets/all_stops.csv", "266240")

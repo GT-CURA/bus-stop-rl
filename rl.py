@@ -84,7 +84,6 @@ class Episode():
         self.reward = 0.0
         self.steps = 0
         self.found = False
-        self.best_img = (float(-999), None)
         self.space_presses = 0
         self.amenity_scores = {}
         self.stop = stop
@@ -95,6 +94,11 @@ class Episode():
         self.stop_detector = stop_detector
         self.log_manager = log_manager
         self.zoom_amt = 0
+        self.best_vp = {
+            "conf": float(-9),
+            "date": None,
+            "img": None
+        }
         
         # Determine geo info
         self.initial_lat, self.initial_lon, self.initial_heading = pic.lat, pic.lng, pic.heading
@@ -203,15 +207,19 @@ class Episode():
                     self.amenity_scores[amenity] = score
         self.log.append(key)
 
-        # Check if this is the best image (to save it later), add to reward
-        if reward > self.best_img[0]:
-            self.best_img = (reward, img)
+        # Add to total reward for this episode (for logging)
         self.reward += reward 
+
+        # Record img, date of img if this is the best evidence of a stop
+        if conf > self.best_vp["conf"]:
+            self.best_vp["conf"] = conf
+            self.best_vp["img"] = img
+            self.best_vp["date"] = pic.date
 
         # Update box size
         self.prev_box_sz = box_sz if box_sz else 0
 
-        # Write log if done 
+        # Write log if done
         if done:
             self.log_manager.add(self)
 
@@ -234,11 +242,11 @@ class Episode():
             reward += S.efficiency_bonus
 
         # Write "best" image
-        if self.best_img and S.save_screenshots:
+        if S.save_best_img and self.best_vp["img"] is not None:
             stop_name = self.stop.place_name.replace("/", "-")
 
             # Run model again :( to get annotations on a copy of the best image
-            save_img = self.best_img[1].copy()
+            save_img = self.best_vp["img"].copy()
             filename=f"{S.log_dir}/{stop_name}_best.jpg"
             if S.annotate_screenshots:
                 results = self.stop_detector.run(save_img)
