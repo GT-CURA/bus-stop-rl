@@ -46,10 +46,7 @@ class StopLoader:
             with open(path) as f:
                     scores = json.load(f)
 
-            # Go through stops
-            pos = []
             for score_num in scores:
-
                 # Build stop 
                 score = scores[score_num]
                 stop = Stop(score["latitude"], score["longitude"], 
@@ -60,16 +57,7 @@ class StopLoader:
                     if score["gmaps_place_name"] in stops_ignored:
                         continue 
 
-                # Pull out false negatives
-                if len(score['amenity_scores']) == 0:
-                    stops.append(stop)
-                else:
-                    stop.false_negative = False
-                    pos.append(stop)
-
-            # Include positives if requested 
-            if S.num_positives:
-                stops.extend(sample(pos, S.num_positives))
+                stops.append(stop)
         
         # Shuffle if requested
         if S.shuffle_stops:
@@ -78,7 +66,10 @@ class StopLoader:
 
     def load_stop(self, stop: Stop = None):
         # Automatically pull next stop
-        if not stop: 
+        if not stop:
+            if S.loop_stops and self.index > len(self.stops):
+                self.index = 0
+
             stop = self.stops[self.index]
             self.index += 1 
 
@@ -91,7 +82,7 @@ class StopLoader:
             return stop
 
         # After 150 stops, if stop is a positive, scramble
-        if self.index > S.before_scrambling and S.scramble_positive_stops:
+        if self.index > S.before_scrambling and S.scramble_stops:
                 
                 # Check if stop is visible 
                 img = self.sv.get_img()

@@ -42,7 +42,7 @@ class StreetViewEnv(gym.Env):
         # Create new episode
         self.episode = Episode(stop, self.stop_detector, self.log_manager, self.sv.current_pic)
         
-        # Set up screenshot stack 
+        # Set up img stack 
         img = self.sv.get_img()
         yolo_output = self.stop_detector.run(img)
         features = self.episode.get_features(img, yolo_output, self.sv.current_pic)
@@ -57,7 +57,7 @@ class StreetViewEnv(gym.Env):
         # Wait time between steps
         sleep(S.wait_time)
 
-        # Get key, take screenshot
+        # Get key, get img
         done = False
         key = S.action_map[action]
 
@@ -248,7 +248,7 @@ class Episode():
             # Run model again :( to get annotations on a copy of the best image
             save_img = self.best_vp["img"].copy()
             filename=f"{S.log_dir}/{stop_name}_best.jpg"
-            if S.annotate_screenshots:
+            if S.annotate_best_img:
                 results = self.stop_detector.run(save_img)
                 results.save()
             else:

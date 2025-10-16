@@ -110,13 +110,13 @@ class StreetView:
         # Logs the current pic (location, heading) as starting point
         self.start_pic = self.current_pic
 
-    def _move(self, direction = 'w', dist = 10, heading = None):
+    def _move(self, direction = 'w', heading = None):
         def _calc_coords(heading):
             # Calculate new coordinates
             earth_radius = 6378137
             heading_rad = math.radians(heading)
-            new_lat = self.current_pic.lat + (dist / earth_radius) * math.cos(heading_rad) * (180 / math.pi)
-            new_lng = self.current_pic.lng + (dist / earth_radius) * math.sin(heading_rad) * (180 / math.pi) / math.cos(math.radians(self.current_pic.lat))
+            new_lat = self.current_pic.lat + (S.dist / earth_radius) * math.cos(heading_rad) * (180 / math.pi)
+            new_lng = self.current_pic.lng + (S.dist / earth_radius) * math.sin(heading_rad) * (180 / math.pi) / math.cos(math.radians(self.current_pic.lat))
             return Pic(self.current_pic.heading, new_lat, new_lng)
         
         # Reset zoom level 

@@ -1,7 +1,7 @@
 class S: 
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
-    run_server = True                  # Whether to display images on web server
+    run_server = False                  # Whether to display images on web server
     request_msgs = False                # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
     wait_time = 0                       # Wait time in seconds between steps
@@ -9,16 +9,11 @@ class S:
     img_width = 640                     # Width of images requested from streetview
     
     """ Stop Loader Properties """
-    shuffle_stops = True                
-    scramble_positive_stops = False     # Randomly move around after loading a positive stop
-    before_scrambling =-1               # How many stops to load before starting to scramble positive stops
-    num_positives = 8000                # How many positive stops to include in training
+    shuffle_stops = True                # Randomly shuffle stops
+    scramble_stops = True               # Randomly move around if stop is visible upon loading
+    before_scrambling =-1               # How many stops to load before starting to scramble stops
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop
-
-    """ YOLO Properties"""
-    num_classes = 4
-    yolo_path = "assets/YOLO.pt"
-    secondary_boost = .35               # How much of the secondary amenities' scores are kept 
+    loop_stops = True                   # Loop back to the beginning if we run out of stops
 
     """ RL Properties """
     img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 
@@ -56,13 +51,19 @@ class S:
     }
 
     """ Logging """
-    save_best_img = True               # Save imgs of "best evidence" of each bus stop?
-    annotate_screenshots = False       # Run YOLO model to annotate saved imgs?
-    save_folder = "runs"
+    save_best_img = True                # Save imgs of "best evidence" of each bus stop?
+    annotate_best_img = False           # Run YOLO model to annotate saved imgs?
+    save_folder = "runs"                # Path to save logs and imgs into  
 
+
+    """ YOLO Properties"""
+    num_classes = 4                     # Number of classes in YOLO model
+    yolo_path = "assets/YOLO.pt"        # Path to YOLO model 
+    secondary_boost = .35               # How much of the secondary amenities' scores are kept 
 
     """ API Settings """
-    rotate_amt = 45
+    rotate_amt = 45                     # Amount camera angle is changed by on horizontal movement
+    dist = 10                           # Distance in meters to search for next pano at when moving forwards/backwards
 
     """ Don't Touch """
     bb_dim = 4                          # Vector containing bounding box cords, area, class
