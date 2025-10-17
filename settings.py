@@ -17,7 +17,7 @@ class S:
 
     """ RL Properties """
     img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 
-    max_steps = 80                      # Max number of steps before forcibly moved to next stop
+    max_steps = 40                      # Max number of steps before forcibly moved to next stop
     min_steps = 35                      # How many steps the model must take before giving up on a stop            
     dampen_scalor = .6                  # How much each score is dampened by
     free_spacebar_presses = 2           # How many times the model can return to start (press spacebar) before being punished
@@ -51,7 +51,7 @@ class S:
     }
 
     """ Logging """
-    save_best_img = True                # Save imgs of "best evidence" of each bus stop?
+    save_best_img = False               # Save imgs of "best evidence" of each bus stop?
     annotate_best_img = False           # Run YOLO model to annotate saved imgs?
     save_folder = "runs"                # Path to save logs and imgs into  
 

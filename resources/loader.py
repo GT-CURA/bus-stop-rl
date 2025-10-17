@@ -103,7 +103,7 @@ class StopLoader:
 
         # Pick a direction to walk in, press key x times
         action = sample(['w','s'], 1)
-        self.press_loop(action, randint(0, 5))
+        self.press_loop(action, randint(0, 4))
 
         # Pick a direction to turn in, press key x times
         action = sample(['a','d'], 1)
