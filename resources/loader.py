@@ -67,7 +67,7 @@ class StopLoader:
     def load_stop(self, stop: Stop = None):
         # Automatically pull next stop
         if not stop:
-            if S.loop_stops and self.index > len(self.stops):
+            if S.loop_stops and self.index == len(self.stops) - 1:
                 self.index = 0
 
             stop = self.stops[self.index]
