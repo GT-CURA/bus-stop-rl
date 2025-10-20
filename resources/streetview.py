@@ -39,10 +39,6 @@ class StreetView:
                 lat=stop.og_lat,
                 lng=stop.og_lng,
             )
-        
-        # Go to the starting pic (space bar was pressed)
-        else:
-            self.current_pic = self.start_pic
 
         # Pull metadata request to find pano location
         if self.current_pic.pano_id == None:
@@ -103,12 +99,29 @@ class StreetView:
     
     def goto_start(self):
         """ Go back to the initial position. """
+        # Create copy of the original pos
+        self.current_pic = Pic(
+            heading = self.start_state["heading"],
+            lat=self.start_state["lat"],
+            lng=self.start_state["lng"]
+        )
+        self.current_pic.pano_id = self.start_state["pano_id"]
+        self.current_pic.zoom_lvl = self.start_state["zoom_lvl"]
+        self.current_pic.date = self.start_state["date"]
+
+        # Go to original pos
         self.goto_pt()
 
     def set_start(self):
-        """ Basically tells class to reset. """
-        # Logs the current pic (location, heading) as starting point
-        self.start_pic = self.current_pic
+        """ Log the current Pic's attributes, setting it as the starting point """
+        self.start_state = {
+            'heading': self.current_pic.heading,
+            'lat': self.current_pic.lat,
+            'lng': self.current_pic.lng,
+            'pano_id': self.current_pic.pano_id,
+            'zoom_lvl': self.current_pic.zoom_lvl,
+            'date': self.current_pic.date
+        }
 
     def _move(self, direction = 'w', heading = None):
         def _calc_coords(heading):
