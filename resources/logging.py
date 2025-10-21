@@ -15,6 +15,10 @@ class LogManager:
 
         # Create directory
         os.makedirs(S.log_dir, exist_ok=True)
+
+        # Create img directory
+        if S.save_best_img:
+            os.makedirs(f"{S.log_dir}/images")
         
         # Background thread to flush periodically
         self.flush_thread = threading.Thread(target=self._background_flush, daemon=True)

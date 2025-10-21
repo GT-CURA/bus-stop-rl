@@ -247,7 +247,7 @@ class Episode():
 
             # Run model again :( to get annotations on a copy of the best image
             save_img = self.best_vp["img"].copy()
-            filename=f"{S.log_dir}/{stop_name}_best.jpg"
+            filename=f"{S.log_dir}/images/{stop_name}_best.jpg"
             if S.annotate_best_img:
                 results = self.stop_detector.run(save_img)
                 results.save()

@@ -107,5 +107,5 @@ if __name__ == "__main__":
         start_server(port=5000)
 
     # Run training/inference loop here!
-    train("weights/PPO", "assets/all_stops.csv", "507904")
-    # infer("assets/all_stops.csv", "266240")
+    # train("weights/PPO", "assets/all_stops.csv", "507904")
+    infer("assets/study_area.csv", "573440")
