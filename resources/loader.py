@@ -37,7 +37,7 @@ class StopLoader:
 
                     # Ignore if requestted
                     if ignore_path:
-                        if score["name"] in stops_ignored:
+                        if row["name"] in stops_ignored:
                             continue
                     stops.append(stop)
 
@@ -50,11 +50,11 @@ class StopLoader:
                 # Build stop 
                 score = scores[score_num]
                 stop = Stop(score["latitude"], score["longitude"], 
-                            score["gmaps_place_name"], None, True, None)
+                            score["name"], None, True, None)
 
                 # Check if this is in the ignore list 
                 if ignore_path:
-                    if score["gmaps_place_name"] in stops_ignored:
+                    if score["name"] in stops_ignored:
                         continue 
 
                 stops.append(stop)
@@ -65,21 +65,25 @@ class StopLoader:
         self.stops = stops
 
     def load_stop(self, stop: Stop = None):
-        # Automatically pull next stop
-        if not stop:
-            if S.loop_stops and self.index == len(self.stops) - 1:
+        # Go back to start of list if looping. Otherwise, exit
+        if self.index >= len(self.stops):
+            if S.loop_stops:
                 self.index = 0
+            else:
+                print("\n[Stop Loader] Out of stops, exiting...")
+                exit(0)
 
+        # Retrieve next stop
+        if not stop:
             stop = self.stops[self.index]
-            self.index += 1 
 
         # Build point, try to navigate to it
         loaded = self.sv.goto_pt(stop)
 
         # If we couldn't load the stop, re-run function
-        if not loaded: 
-            self.load_stop()
-            return stop
+        if not loaded:
+            self.index += 1
+            return self.load_stop()
 
         # After 150 stops, if stop is a positive, scramble
         if self.index > S.before_scrambling and S.scramble_stops:
@@ -94,6 +98,7 @@ class StopLoader:
                     self.scramble_positive()
 
         # Tell SV to log initial position
+        self.index += 1
         self.sv.set_start()
         return stop
 

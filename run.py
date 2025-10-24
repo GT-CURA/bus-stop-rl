@@ -10,6 +10,7 @@ from rl import StreetView, StreetViewEnv
 from settings import S 
 from resources.loader import StopLoader
 from resources.server import start_server
+import numpy as np
 
 def make_env(path: str):
     # Create streetview and loader
@@ -86,21 +87,21 @@ def infer(stops_path: str, weights_path: str):
 
     # Load the agent
     agent = PPO.load(weights_path, env=vec_env)
+    
+    # Must reset environment initially
+    obs = vec_env.reset()
 
-    # Setup log
-    logger = configure(S.log_dir, ["csv", "stdout"])
-    agent.set_logger(logger)
-
-    # Go through each stop
+    # Iterate through each episode, allowing agent to run until done for each
     for ep in range(num_stops):
-        obs = vec_env.reset()
-        done = False
+        while True:
 
-        # Run until agent is done
-        while not done:
+            # Get action, do step
             action, _ = agent.predict(obs, deterministic=False)
             obs, reward, done, info = vec_env.step(action)
-            done = done[0]
+
+            # Break if episode finished
+            if done[0]:
+                break
 
 if __name__ == "__main__":
     if S.run_server: 
@@ -108,4 +109,4 @@ if __name__ == "__main__":
 
     # Run training/inference loop here!
     # train("weights/PPO", "assets/all_stops.csv", "507904")
-    infer("assets/study_area.csv", "573440")
+    infer("assets/test.csv", "573440")
