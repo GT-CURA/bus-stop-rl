@@ -22,7 +22,7 @@ class StopLoader:
             
             stops_ignored = []
             for score_num in ignore_f:
-                stops_ignored.append(score_num["place_name"])
+                stops_ignored.append(score_num["name"])
 
         stops = []
         # Load stops (CSV)

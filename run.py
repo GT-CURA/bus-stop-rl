@@ -12,13 +12,13 @@ from resources.loader import StopLoader
 from resources.server import start_server
 import numpy as np
 
-def make_env(path: str):
+def make_env(path: str, ignore_path: str = None):
     # Create streetview and loader
     sv = StreetView()
     stop_loader = StopLoader(sv)
 
     # Load stops, launch SV
-    stop_loader.load_stops(path)
+    stop_loader.load_stops(path, ignore_path)
     sv.launch()
 
     # Pass YOLO to loader :(
@@ -73,7 +73,7 @@ def train(save_path: str, stops_path: str, weights_path = None):
     # Save weights, close gym
     agent.save(save_path)
 
-def infer(stops_path: str, weights_path: str):
+def infer(stops_path: str, weights_path: str, ignore_path: str = None):
     """
     Primary inference loop. Used to actually 'run' the agent on a collection of bus stops.
 
@@ -81,7 +81,7 @@ def infer(stops_path: str, weights_path: str):
     :param weights_path: Path to the agent's weights, trained previously. Exclude .zip
     """
     # Wrap environment
-    env, num_stops = make_env(stops_path)
+    env, num_stops = make_env(stops_path, ignore_path)
     vec_env = DummyVecEnv([lambda: env])
     vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
@@ -109,4 +109,4 @@ if __name__ == "__main__":
 
     # Run training/inference loop here!
     # train("weights/PPO", "assets/all_stops.csv", "507904")
-    infer("assets/test.csv", "573440")
+    infer("assets/study_area.csv", "573440", "ignore.json")

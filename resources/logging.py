@@ -26,7 +26,7 @@ class LogManager:
 
     def add(self, instance):
         record = {
-            "place_name": instance.stop.place_name,
+            "name": instance.stop.place_name,
             "latitude": instance.stop.og_lat,
             "longitude": instance.stop.og_lng,
             "amenity_scores": instance.amenity_scores,
