@@ -123,7 +123,7 @@ class StreetView:
             'date': self.current_pic.date
         }
 
-    def _move(self, direction = 'w', heading = None):
+    def _move(self, direction = 'Forwards', heading = None):
         def _calc_coords(heading):
             # Calculate new coordinates
             earth_radius = 6378137
@@ -137,7 +137,7 @@ class StreetView:
 
         # Reverse heading if necessary
         heading = self.current_pic.heading
-        if direction != 'w':
+        if direction != 'Forwards':
             heading = self.current_pic.heading - 180
 
         # Increment if pano ID equals current pano ID
@@ -153,7 +153,7 @@ class StreetView:
                 target_dir = self.current_pic.heading
 
                 # Flip target dir if going backwards
-                if direction == 's':
+                if direction == 'Backwards':
                     target_dir -= 180 
                 
                 # Normalize 
@@ -174,7 +174,7 @@ class StreetView:
 
             # If no sstreet dir, just add 70 degrees
             else:
-                if direction == 'w':
+                if direction == 'Forwards':
                     pic = _calc_coords(self.current_pic.heading + 70)
                 else:
                     pic = _calc_coords(self.current_pic.heading - 70)
