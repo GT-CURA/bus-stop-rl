@@ -3,8 +3,6 @@ from ultralytics import YOLO
 import torch
 import cv2
 import numpy as np
-from threading import Thread
-from queue import Queue
 
 # A wrapper for the YOLO model trained to detect stops
 class StopDetector:

@@ -10,7 +10,6 @@ from rl import StreetView, StreetViewEnv
 from settings import S 
 from resources.loader import StopLoader
 from resources.server import start_server
-import numpy as np
 
 def make_env(path: str, ignore_path: str = None):
     # Create streetview and loader
@@ -109,4 +108,4 @@ if __name__ == "__main__":
 
     # Run training/inference loop here!
     # train("weights/PPO", "assets/all_stops.csv", "507904")
-    infer("assets/study_area.csv", "573440", "ignore.json")
+    infer("assets/study_area.csv", "573440")

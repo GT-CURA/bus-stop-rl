@@ -62,11 +62,11 @@ class StreetViewEnv(gym.Env):
         key = S.action_map[action]
 
         # Handle spacebar
-        if key == "Key.space":
+        if key == "Return":
             self.sv.goto_start()
 
         # Handle other keys, skipping enter
-        elif key != "Key.enter":  
+        elif key != "Next":  
             self.sv.do_action(key)
         
         # Run stop detector on changed env
@@ -163,18 +163,18 @@ class Episode():
 
     def update(self, key, img, pic):
         # Update steps if key != enter
-        if key != "Key.enter":
+        if key != "Next":
             self.steps += 1 
 
         # Log space bar presses and zooms
-        if key == "Key.space":
+        if key == "Return":
             self.space_presses += 1
             self.zoom_amt = 0
 
         # Update zoom level
-        if key == "=":
+        if key == "Zoom":
             self.zoom_amt += 1
-        elif key in ["w", "s"]:
+        elif key in ["Forwards", "Backwards"]:
             self.zoom_amt = 0
 
         # Run stop detector model to get conf for assessment
@@ -186,7 +186,7 @@ class Episode():
 
         # See if this episode is finished
         done = False
-        if key == "Key.enter":
+        if key == "Next":
             reward, done = self.check_done(found)
 
         # Determine score if not
@@ -278,7 +278,7 @@ class Episode():
             reward -= (self.steps_since_found - S.free_steps_after_found) * S.after_found_punishment
 
         # Prevent spacebar spamming
-        if key == "Key.space":
+        if key == "Return":
             if self.space_presses > S.free_spacebar_presses:
                 reward -= S.spacebar_penalty * self.space_presses 
 
@@ -296,9 +296,9 @@ class Episode():
         reward += sz_reward
 
         # Punish reused viewpoint, exempting zooms (outside of spins) and space
-        if self.vp_used_ct > 0 and key != "Key.space":
+        if self.vp_used_ct > 0 and key != "Return":
             if self.zoom_amt > 0:
-                if self.prev_move not in ["w","s"]:
+                if self.prev_move not in ["Forwards","Backwards"]:
                     reward -= self.vp_used_ct * (S.reused_vp_penalty / 2)    
             else:
                 reward -= self.vp_used_ct * S.reused_vp_penalty    

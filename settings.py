@@ -1,16 +1,17 @@
 class S: 
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
-    run_server = False                  # Launch webserver, allowing you to view the program in action
+    run_server = True                   # Launch webserver, allowing you to view the program in action
     request_msgs = False                # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
     wait_time = 0                       # Wait time in seconds between steps
     img_height = 640                    # Height of images requested from streetview
     img_width = 640                     # Width of images requested from streetview
+    img_caching = False                 # Save images for reuse
     
     """ Stop Loader Properties """
-    shuffle_stops = False               # Randomly shuffle stops
-    scramble_stops = False              # Randomly move around if stop is visible upon loading
+    shuffle_stops = True               # Randomly shuffle stops
+    scramble_stops = True              # Randomly move around if stop is visible upon loading
     before_scrambling =-1               # How many stops to load before starting to scramble stops
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop
     loop_stops = False                  # Loop back to the beginning if we run out of stops
@@ -41,13 +42,13 @@ class S:
     """ PPO Properties """
     bbs_kept = 3                        # How many of the highest conf bounding boxes will be kept per frame
     action_map = {
-        0: "w",
-        1: "a",
-        2: "s",
-        3: "d",
-        4: "=",
-        5: "Key.enter",
-        6: "Key.space"
+        0: "Forwards",
+        1: "Counterclockwise",
+        2: "Backwards",
+        3: "Clockwise",
+        4: "Zoom",
+        5: "Next",
+        6: "Return"
     }
 
     """ Logging """

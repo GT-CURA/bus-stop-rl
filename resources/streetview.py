@@ -63,25 +63,25 @@ class StreetView:
     def do_action(self, action, pull_img = True):
         """ Immitate movement in streetview. """
         # Rotate counterclockwise
-        if action == 'a':
+        if action == 'Counterclockwise':
             self.current_pic.heading -= S.rotate_amt
             self.current_pic.heading = self.current_pic.heading % 360
             
         # Rotate clockwise
-        elif action == 'd':
+        elif action == 'Clockwise':
             self.current_pic.heading += S.rotate_amt
             self.current_pic.heading = self.current_pic.heading % 360
 
         # Move forwards
-        elif action == 'w':
-            self._move('w')
+        elif action == 'Forwards':
+            self._move('Forwards')
 
         # Move backwards    
-        elif action == 's':
-            self._move('s')
+        elif action == 'Backwards':
+            self._move('Backwards')
         
         # Zoom in
-        elif action == "=":
+        elif action == "Zoom":
             self._zoom()
 
         # Pull image if requested
@@ -123,7 +123,7 @@ class StreetView:
             'date': self.current_pic.date
         }
 
-    def _move(self, direction = 'w', heading = None):
+    def _move(self, direction = 'Forwards', heading = None):
         def _calc_coords(heading):
             # Calculate new coordinates
             earth_radius = 6378137
@@ -137,7 +137,7 @@ class StreetView:
 
         # Reverse heading if necessary
         heading = self.current_pic.heading
-        if direction != 'w':
+        if direction != 'Forwards':
             heading = self.current_pic.heading - 180
 
         # Increment if pano ID equals current pano ID
@@ -153,7 +153,7 @@ class StreetView:
                 target_dir = self.current_pic.heading
 
                 # Flip target dir if going backwards
-                if direction == 's':
+                if direction == 'Backwards':
                     target_dir -= 180 
                 
                 # Normalize 
@@ -174,7 +174,7 @@ class StreetView:
 
             # If no sstreet dir, just add 70 degrees
             else:
-                if direction == 'w':
+                if direction == 'Forwards':
                     pic = _calc_coords(self.current_pic.heading + 70)
                 else:
                     pic = _calc_coords(self.current_pic.heading - 70)
@@ -230,18 +230,29 @@ class Requests:
         self.current_key_index = 0
         self.counter_path = Path(f"{S.log_dir}/api_calls.json")
         
+        # Create image cache 
+        self.cache_dir = Path("cached_imgs")
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
         # Load keys
         with open(S.key_path, "r") as f:
             self.keys = [k.strip() for k in f.read().split(",") if k.strip()]
 
         if not self.keys:
             raise ValueError("No API keys provided.")
-
+        
         # Load call counts
         self._load_usage_counts()
         self._rotate_key()
 
     def pull_image(self, pic: Pic):
+        # Check cache
+        if S.img_caching:
+            cached = self._pull_from_cache(pic)
+            if cached:
+                if S.request_msgs: print(f"[Cache] Hit for {pic.pano_id}")
+            return cached
+        
         # Get pano ID if we don't have it
         if not pic.pano_id:
             self.pull_pano_info(pic)
@@ -252,10 +263,20 @@ class Requests:
         if response.status_code == 400:
             print("[Requests] Got 400 error, falling back to old_pull_img")
             return self.old_pull_img(pic)
-        
+        else:
+            if S.img_caching:
+                self._save_to_cache(pic, response.content)
+
         return response.content
     
     def old_pull_img(self, pic: Pic):
+        # Check cache
+        if S.img_caching:
+            cached = self._pull_from_cache(pic)
+            if cached:
+                if S.request_msgs: print(f"[Cache] Hit for {pic.pano_id}")
+                return cached
+        
         # Increment usage count for current key
         self.usage_counts[self.key] += 1
         self._save_usage_counts()
@@ -295,6 +316,8 @@ class Requests:
         
         # Close response, return content 
         content = response.content
+        if S.img_caching:
+            self._save_to_cache(pic, content)
         response.close()
         return content
 
@@ -417,7 +440,35 @@ class Requests:
         print(f"[{context}] Failed after {attempt} tries.")
         return None
     
-    """" Dealing with multiple API keys """
+    """ Image caching """
+    def _get_path(self, pic: Pic):
+        if not pic.pano_id:
+            return None
+        fname = f"{pic.pano_id}_h{int(pic.heading or 0)}_z{pic.zoom_lvl}.jpg"
+        return self.cache_dir / fname
+
+    def _pull_from_cache(self, pic: Pic):
+        path = self._get_path(pic)
+        if path and path.exists():
+            try:
+                with open(path, "rb") as f:
+                    return f.read()
+            except Exception:
+                print(f"[Cache] Failed to load {path}, deleting.")
+                path.unlink(missing_ok=True)
+        return None
+
+    def _save_to_cache(self, pic: Pic, content: bytes):
+        path = self._get_path(pic)
+        if not path:
+            return
+        try:
+            with open(path, "wb") as f:
+                f.write(content)
+        except Exception as e:
+            print(f"[Cache] Failed to write {path}: {e}")
+
+    """ Dealing with multiple API keys """
     def _load_usage_counts(self):
         if self.counter_path.exists():
             try:
