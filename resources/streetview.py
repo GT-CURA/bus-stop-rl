@@ -63,25 +63,25 @@ class StreetView:
     def do_action(self, action, pull_img = True):
         """ Immitate movement in streetview. """
         # Rotate counterclockwise
-        if action == 'a':
+        if action == 'Counterclockwise':
             self.current_pic.heading -= S.rotate_amt
             self.current_pic.heading = self.current_pic.heading % 360
             
         # Rotate clockwise
-        elif action == 'd':
+        elif action == 'Clockwise':
             self.current_pic.heading += S.rotate_amt
             self.current_pic.heading = self.current_pic.heading % 360
 
         # Move forwards
-        elif action == 'w':
-            self._move('w')
+        elif action == 'Forwards':
+            self._move('Forwards')
 
         # Move backwards    
-        elif action == 's':
-            self._move('s')
+        elif action == 'Backwards':
+            self._move('Backwards')
         
         # Zoom in
-        elif action == "=":
+        elif action == "Zoom":
             self._zoom()
 
         # Pull image if requested
@@ -247,9 +247,10 @@ class Requests:
 
     def pull_image(self, pic: Pic):
         # Check cache
-        cached = self._pull_from_cache(pic)
-        if cached:
-            if S.request_msgs: print(f"[Cache] Hit for {pic.pano_id}")
+        if S.img_caching:
+            cached = self._pull_from_cache(pic)
+            if cached:
+                if S.request_msgs: print(f"[Cache] Hit for {pic.pano_id}")
             return cached
         
         # Get pano ID if we don't have it
@@ -263,16 +264,18 @@ class Requests:
             print("[Requests] Got 400 error, falling back to old_pull_img")
             return self.old_pull_img(pic)
         else:
-            self._save_to_cache(pic, response.content)
+            if S.img_caching:
+                self._save_to_cache(pic, response.content)
 
         return response.content
     
     def old_pull_img(self, pic: Pic):
         # Check cache
-        cached = self._pull_from_cache(pic)
-        if cached:
-            if S.request_msgs: print(f"[Cache] Hit for {pic.pano_id}")
-            return cached
+        if S.img_caching:
+            cached = self._pull_from_cache(pic)
+            if cached:
+                if S.request_msgs: print(f"[Cache] Hit for {pic.pano_id}")
+                return cached
         
         # Increment usage count for current key
         self.usage_counts[self.key] += 1
@@ -313,7 +316,8 @@ class Requests:
         
         # Close response, return content 
         content = response.content
-        self._save_to_cache(pic, content)
+        if S.img_caching:
+            self._save_to_cache(pic, content)
         response.close()
         return content
 
