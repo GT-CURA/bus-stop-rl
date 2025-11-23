@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import requests 
-from resources.utils.stop import Stop
+from resources.utils.dataclasses import Stop
 from requests.exceptions import RequestException
 import json
 from settings import S
