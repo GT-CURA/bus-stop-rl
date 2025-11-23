@@ -19,7 +19,7 @@ class StopDetector:
         output = self.model(img)[0]
 
         # Save output
-        if S.run_server: output.save("resources/static/frame.jpg")
+        if S.run_server: output.save("resources/utils/static/frame.jpg")
         return output
 
     def score_output(self, output):

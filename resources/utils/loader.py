@@ -1,9 +1,9 @@
 import json
 from random import sample, shuffle, randint
-from resources.stop import Stop
+from resources.utils.stop import Stop
 from resources.stop_detector import StopDetector
 import csv
-from resources.streetview import StreetView
+from resources.streetview.sv import StreetView
 from settings import S
 
 class StopLoader:

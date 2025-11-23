@@ -6,10 +6,10 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 
 # Project modules
 from resources.custom_policies import StopMLPPolicy
-from rl import StreetView, StreetViewEnv
+from resources.rl_env.rl import StreetView, StreetViewEnv
 from settings import S 
-from resources.loader import StopLoader
-from resources.server import start_server
+from resources.utils.loader import StopLoader
+from resources.utils.server import start_server
 
 def make_env(path: str, ignore_path: str = None):
     # Create streetview and loader
