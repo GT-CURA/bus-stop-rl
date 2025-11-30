@@ -10,8 +10,8 @@ class S:
     cache_dir = "graph_cache"           # Directory to save OSMNX graph cache in 
     
     """ Stop Loader Properties """
-    shuffle_stops = True               # Randomly shuffle stops
-    scramble_stops = True              # Randomly move around if stop is visible upon loading
+    shuffle_stops = False               # Randomly shuffle stops
+    scramble_stops = False              # Randomly move around if stop is visible upon loading
     before_scrambling =-1               # How many stops to load before starting to scramble stops
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop
     loop_stops = False                  # Loop back to the beginning if we run out of stops
