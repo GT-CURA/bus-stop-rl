@@ -16,54 +16,65 @@ class StopFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space):
         super().__init__(observation_space)
 
-        # Per-frame feature dims
-        self.bb_dim = S.bbs_kept * (S.bb_dim + S.num_classes)
+        # Dimensions from setting class 
+        self.bb_dim = S.bb_total_dim
+        self.yolo_dim = S.features_dim
+        self.geo_dim = S.geo_dim
 
-        # YOLO Feature extractor network
+        # YOLO feature extractor network
         self.yolo_net = nn.Sequential(
-            nn.Linear(S.features_dim, 256),
+            nn.Linear(self.yolo_dim, 256),
             nn.ReLU(),
+            nn.LayerNorm(256),
+
             nn.Linear(256, 128),
-            nn.ReLU()
+            nn.ReLU(),
+            nn.LayerNorm(128),
         )
 
-        # Bbox coordinate / size and classes network
+        # Bbox coordinate / size and classes network 
         self.bb_net = nn.Sequential(
-            nn.Linear(self.bb_dim, 64),
+            nn.Linear(self.bb_dim, 128),
             nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.ReLU()
+            nn.LayerNorm(128),
+
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.LayerNorm(64),
         )
 
-        # Spatial information network
+        # Spatial information network        
         self.geo_net = nn.Sequential(
-            nn.Linear(S.geo_dim, 64),
+            nn.Linear(self.geo_dim, 64),
             nn.ReLU(),
+            nn.LayerNorm(64),
+
             nn.Linear(64, 32),
-            nn.ReLU()
+            nn.ReLU(),
+            nn.LayerNorm(32),
         )
 
         # Fusion network
         fused_dim = 128 + 64 + 32
         self.fusion_net = nn.Sequential(
             nn.Linear(fused_dim, 256),
-            nn.ReLU()
+            nn.ReLU(),
+            nn.LayerNorm(256),
         )
 
     def forward(self, obs):
         bs = obs.shape[0]
         obs = obs.view(bs, S.stack_sz, S.frame_dim)
 
-        # Pull each section of observation out 
+        # Slice the observation
         yolo_feats = obs[:, :, :S.features_dim]
         bb_feats = obs[:, :, S.features_dim : S.features_dim + self.bb_dim]
         geo_feats = obs[:, :, S.features_dim + self.bb_dim:]
 
-        # Run each through their NN
+        # Encode each feature group
         yolo_out = self.yolo_net(yolo_feats).mean(dim=1)
-        coord_out = self.bb_net(bb_feats).mean(dim=1)
+        bb_out = self.bb_net(bb_feats).mean(dim=1)
         geo_out = self.geo_net(geo_feats).mean(dim=1)
 
-        # Run output through fused NN
-        fused = th.cat((yolo_out, coord_out, geo_out), dim=1)
+        fused = th.cat((yolo_out, bb_out, geo_out), dim=1)
         return self.fusion_net(fused)
