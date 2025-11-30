@@ -72,7 +72,7 @@ class Episode():
         ], dtype=np.float32)
 
         # Get features relevant to spatial rewards system from graph class
-        spatial_graph_vec = self.graph.get_spatial_features(
+        spatial_graph_vec = self.graph.get_features(
             self.current_node,
             lat, lng,
             heading
