@@ -107,11 +107,11 @@ class StopLoader:
         print("\n[Stop Loader] Scrambling positive stop...")
 
         # Pick a direction to walk in, press key x times
-        action = sample(['w','s'], 1)
+        action = sample(['Forwards','Backwards'], 1)
         self.press_loop(action, randint(0, 4))
 
         # Pick a direction to turn in, press key x times
-        action = sample(['a','d'], 1)
+        action = sample(['Clockwise','Counterclockwise'], 1)
         self.press_loop(action, randint(0,3))
 
         # Check if stop is still visible
@@ -127,7 +127,7 @@ class StopLoader:
             
             # Turn away from the stop
             else:
-                action = sample(['a','d'], 1)
+                action = sample(['Clockwise','Counterclockwise'], 1)
                 self.press_loop(action, randint(0,2))
         print("[Stop Loader] Complete!\n")
 
