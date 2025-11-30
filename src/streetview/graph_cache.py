@@ -2,7 +2,7 @@ import os
 import osmnx as ox
 from settings import S 
 class GraphCache:
-    def __init__(self, tile_size=0.02):
+    def __init__(self, tile_size=0.03):
         """
         tile_size: degrees (0.02 is about 2.2 km)
         """
