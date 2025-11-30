@@ -23,5 +23,5 @@ class Misc:
         name = instance.stop.place_name
         lat = instance.stop.og_lat
         lon = instance.stop.og_lng
-        print(f"[Step {instance.steps}] Action: '{key}' | Reward: {reward:.3f} | Since Found: {instance.steps_since_found} | VP Used: {instance.vp_used_ct}")
+        print(f"[Step {instance.steps}] Action: '{key}' | Reward: {reward:.3f} | Since Found: {instance.steps_since_found}")
         print(f"Stop: {name} ({lat}, {lon})")

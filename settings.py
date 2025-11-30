@@ -28,16 +28,16 @@ class S:
     min_conf = .75                      # The minimum confidence value required to be considered "found"
 
     """ Incentives / Penalties """
-    after_found_punishment = .15        # How much to punish model per step after ^
+    after_found_punishment = .05        # How much to punish model per step after ^
     move_on_reward = .1                 # Points model gets for successfully moving to next episode
     efficiency_bonus = .4               # Additional points for moving on before using all free steps    
-    size_scalar = 7                     # The scalar by which change in box size is multiplied and added to score
-    max_sz_pts = .2                     # The most amount of additional points from increasing box size
-    reused_vp_penalty = .15             # Penalty per viewpoint reuse 
-    premature_end = -.7                 # The 'punishment' score model receives for ending early
-    consecutive_boost = .2              # How much the model is rewarded for consecutive observations of a stop
-    spacebar_penalty = .3               # Model is punished this much per spacebar press after allowed number of presseses
-    found_boost = .25                   # Bonus for finding stop
+    premature_end = -.3                 # The 'punishment' score model receives for ending before finding a stop
+    spacebar_penalty = .1               # Model is punished this much per spacebar press after allowed number of presseses
+    found_boost = .2                    # Bonus for finding stop
+    heading_weight = .3                 # Weight for rotating towards observations  
+    graph_weight = .1                   # Weight for returning to node with best obesrvations
+    coord_weight = .05                  # Weight for moving towards estimated Stop coord 
+    new_node_bonus = .05                # Points rewarded for visiting a new node (encourage exploration)
 
     """ PPO Properties """
     bbs_kept = 3                        # How many of the highest conf bounding boxes will be kept per frame
@@ -60,7 +60,7 @@ class S:
     """ YOLO Properties"""
     num_classes = 4                     # Number of classes in YOLO model
     yolo_path = "assets/YOLO.pt"        # Path to YOLO model 
-    secondary_boost = .35               # How much of the secondary amenities' scores are kept 
+    secondary_boost = .25               # How much of the secondary amenities' scores are kept 
 
     """ API Settings """
     rotate_amt = 45                     # Amount camera angle is changed by on horizontal movement

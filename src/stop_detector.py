@@ -3,55 +3,79 @@ from ultralytics import YOLO
 import torch
 import cv2
 import numpy as np
+from src.rl_env.graph import Node
+from src.utils.objects import Detection, Pic
 
 # A wrapper for the YOLO model trained to detect stops
 class StopDetector:
 
     def __init__(self):
         self.model = YOLO(S.yolo_path)
-        self.frame_num = 0
 
     def run(self, img):
-        # Alert console 
-        print("\n[Stop Detector] Running model...")
-
         # Run model
         output = self.model(img)[0]
 
         # Save output
-        if S.run_server: output.save("resources/utils/static/frame.jpg")
+        if S.run_server: output.save("src/utils/server/static/frame.jpg")
         return output
 
-    def score_output(self, output):
+    def score_output(self, output, node: Node, pic: Pic, step, initial_lat, initial_lng):
         # No boxes
         if len(output.boxes) == 0: 
-            return 0.0, False, None, 0
+            return 0.0, False
 
         # Scores to be calculated
         primary_score = 0.0
         secondary_score = 0.0
         found = False
-        
-        # Remake boxes to preserve memory, calc score
-        boxes = {}
-        biggest_box = 0
+        best_bearing = None
+
+        # Sum the score of secondary amenities, get highest confidence primary amenity and its sz
         for box in output.boxes:
             label = self.model.names[int(box.cls)]
             conf = float(box.conf)
-            boxes[label] = conf
 
+            # Update node's scorecard 
+            if node.scores[label] < conf:
+                node.scores[label] = conf
+                
             # Take best evidence of a sign/shelter
             if label in {"shelter", "sign"}:
-                primary_score = max(primary_score, conf)
+
+                # Calc bearing using bounding box (FOV is 90)
+                box_center = float(box.xywhn[0][0])
+                delta_deg = (box_center -.5) * 90
+                bearing = (pic.heading + delta_deg) % 360
+
+                # Localize coords 
+                local_x, local_y = self.localize_coords(pic.lat, pic.lng, initial_lat, initial_lng)
+
+                # Build detection, add to node
+                det = Detection(
+                    bearing=bearing,
+                    primary_conf=conf,
+                    box_sz=float(box.xywhn[0][2] * box.xywhn[0][3]),
+                    cx_norm=box_center,
+                    label=label,          
+                    timestamp=step,
+                    pano_id=pic.pano_id,
+                    lat = pic.lat,
+                    lng = pic.lng, 
+                    local_x=local_x,
+                    local_y=local_y
+                )
+                node.detections.append(det)
+
+                # If highest conf primray, set as primary score and get bearing
+                if conf > primary_score:
+                    primary_score = conf
+                    best_bearing = bearing
 
                 # Mark as found if meets min conf 
                 if conf > S.min_conf:
                     found = True
 
-                # Determine if this is the "biggest" evidence of a stop
-                box_size = float(box.xywhn[0][2] * box.xywhn[0][3])
-                if box_size > biggest_box:
-                    biggest_box = box_size
             else:
                 secondary_score += conf
 
@@ -60,7 +84,13 @@ class StopDetector:
 
         # Allow small boost from secondary amenities
         total_score = primary_score + S.secondary_boost * secondary_score
-        return min(total_score, 1.0), found, boxes, biggest_box
+
+        # Update node's highest conf
+        if primary_score > node.best_conf:
+            node.best_conf = primary_score
+            node.best_bearing = best_bearing
+
+        return min(total_score, 1.0), found
     
     def extract_features(self, img, output):
         # Resize and normalize image
@@ -129,3 +159,12 @@ class StopDetector:
                 best_conf = max(best_conf, conf)
 
         return best_conf
+    
+    def localize_coords(self, lat, lng, initial_lat, initial_lng):
+        """ Make cords relative to origin (starting position for this stop) """
+        R = 6371000
+        dlat = np.radians(lat - initial_lat)
+        dlon = np.radians(lng - initial_lng)
+        x = R * dlon * np.cos(np.radians(initial_lat))
+        y = R * dlat
+        return x, y

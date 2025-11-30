@@ -5,11 +5,12 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 
 # Project modules
-from resources.custom_policies import StopMLPPolicy
-from resources.rl_env.rl import StreetView, StreetViewEnv
-from settings import S 
-from resources.utils.loader import StopLoader
-from resources.utils.server import start_server
+from settings import S
+from src.custom_policies import StopMLPPolicy
+from src.rl_env.env import StreetViewEnv
+from src.streetview.sv import StreetView
+from src.utils.loader import StopLoader
+from src.utils.server.server import start_server
 
 def make_env(path: str, ignore_path: str = None):
     # Create streetview and loader
@@ -18,7 +19,6 @@ def make_env(path: str, ignore_path: str = None):
 
     # Load stops, launch SV
     stop_loader.load_stops(path, ignore_path)
-    sv.launch()
 
     # Pass YOLO to loader :(
     env = StreetViewEnv(sv, stop_loader)
@@ -107,5 +107,5 @@ if __name__ == "__main__":
         start_server(port=5000)
 
     # Run training/inference loop here!
-    # train("weights/PPO", "assets/all_stops.csv", "507904")
-    infer("assets/study_area.csv", "573440")
+    train("weights/PPO", "assets/all_stops.csv")
+    # infer("assets/study_area.csv", "573440")
