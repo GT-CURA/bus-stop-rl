@@ -32,6 +32,7 @@ class Graph:
         self.prev_det_bearing_err = None
         self.debug = debug
         self.conf_threshold = .4
+        self.prev_coord_dist = None
 
     def add_node(self, pic, add_neighbors = True):
         """ Adds and updates nodes. """
@@ -309,3 +310,96 @@ class Graph:
 
         # Keep 3 higest scoring hyps
         self.hypotheses = sorted(self.hypotheses, key=lambda h: -h.score)[:3]
+
+
+    def get_features(self, node, curr_lat, curr_lng, curr_heading):
+        """ Producesa feature vector providing info relevant to spatial rewards system. """
+        # 1. Calculate direction error 
+        def wrap(a):
+            return ((a + 180) % 360) - 180
+
+        # Get latest detection
+        latest_det = node.detections[-1] if node.detections else None
+
+        # Set desired bearing to latest detection, or fall back to hypothessi 
+        desired_bearing = None
+        if latest_det is not None:
+            desired_bearing = latest_det.bearing
+        else:
+            if self.hypotheses:
+                best_h = max(self.hypotheses, key=lambda h: h.score)
+                if getattr(best_h, "best_bearing", None) is not None:
+                    desired_bearing = best_h.best_bearing
+
+        # Calc heading error, break into sin cos
+        if desired_bearing is not None:
+            bearing_err = wrap(curr_heading - desired_bearing)
+            err_sin = np.sin(np.radians(bearing_err))
+            err_cos = np.cos(np.radians(bearing_err))
+        else:
+            err_sin, err_cos = 0.0, 0.0
+
+        # 2. Coordinate reward features
+        # Find hypotheses with triangulated pos 
+        triangulated = [h for h in self.hypotheses if h.triangulated_pos is not None]
+
+        if triangulated:
+            # Get best hyp
+            best_hyp = max(triangulated, key=lambda h: h.score)
+
+            # Get dist to best hyp, scale it 
+            best_x, best_y = best_hyp.triangulated_pos
+            coord_dist = np.linalg.norm([curr_lat - best_x, curr_lng - best_y])
+            coord_dist_scaled = np.tanh(coord_dist / 50)
+
+            # Calc change in distance
+            if self.prev_coord_dist is not None:
+                delta_coord = self.prev_coord_dist - coord_dist
+            else:
+                delta_coord = 0.0
+
+            # Tell agent if we have a triangulated hyp to pursue
+            has_triangulated = 1.0
+        else:
+            coord_dist_scaled = 0.0
+            delta_coord = 0.0
+            has_triangulated = 0.0
+
+        # 3. Graph reward features
+        if self.graph:
+            # GEt node with best confidence
+            best_id = max(self.graph.keys(), key=lambda nid: self.graph[nid].best_conf)
+            best_conf = self.graph[best_id].best_conf
+
+            # Find distance to best node 
+            bfs_dist = self.shortest_distance(node.pano_id, [best_id])
+            bfs_scaled = np.tanh((bfs_dist or 0) / 10)
+
+            # Calc chance in distance to best node
+            if self.prev_dist_to_best is not None and bfs_dist is not None:
+                delta_bfs = self.prev_dist_to_best - bfs_dist
+            else:
+                delta_bfs = 0.0
+
+        else:
+            best_conf = 0.0
+            bfs_scaled = 0.0
+            delta_bfs = 0.0
+
+        # 4. Local graph features
+        visit_scaled = min(node.visits / 10, 1)
+        degree_scaled = min(len(node.neighbors) / 10, 1)
+
+        # 5. Build the vector 
+        return np.array([
+            err_sin,
+            err_cos,
+            coord_dist_scaled,
+            delta_coord,
+            has_triangulated,
+            bfs_scaled,
+            delta_bfs,
+            best_conf,
+            visit_scaled,
+            degree_scaled
+        ], dtype=np.float32)

@@ -71,8 +71,15 @@ class Episode():
             remaining_steps
         ], dtype=np.float32)
 
+        # Get features relevant to spatial rewards system from graph class
+        spatial_graph_vec = self.graph.get_spatial_features(
+            self.current_node,
+            lat, lng,
+            heading
+        )
+
         # Concat features
-        return np.concat([yolo_feats, spatial_vec])
+        return np.concat([yolo_feats, spatial_vec, spatial_graph_vec]).astype(np.float32)
 
     def update(self, key, img, pic):
         # Update steps if key != enter

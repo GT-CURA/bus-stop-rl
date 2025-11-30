@@ -14,7 +14,7 @@ class StopMLPPolicy(MlpPolicy):
 
 class StopFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space):
-        super().__init__(observation_space, features_dim=128)
+        super().__init__(observation_space)
 
         # Per-frame feature dims
         self.bb_dim = S.bbs_kept * (S.bb_dim + S.num_classes)
@@ -37,18 +37,22 @@ class StopFeatureExtractor(BaseFeaturesExtractor):
 
         # Spatial information network
         self.geo_net = nn.Sequential(
-            nn.Linear(S.geo_dim, 16),
+            nn.Linear(S.geo_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
             nn.ReLU()
         )
 
         # Fusion network
+        fused_dim = 128 + 64 + 32
         self.fusion_net = nn.Sequential(
-            nn.Linear(128 + 32 + 16, 128),
+            nn.Linear(fused_dim, 256),
             nn.ReLU()
         )
 
     def forward(self, obs):
-        obs = obs.view(-1, S.stack_sz, S.frame_dim)
+        bs = obs.shape[0]
+        obs = obs.view(bs, S.stack_sz, S.frame_dim)
 
         # Pull each section of observation out 
         yolo_feats = obs[:, :, :S.features_dim]
