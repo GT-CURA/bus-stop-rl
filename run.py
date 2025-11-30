@@ -105,7 +105,7 @@ def infer(stops_path: str, weights_path: str, ignore_path: str = None):
 if __name__ == "__main__":
     if S.run_server: 
         start_server(port=5000)
-
+        
     # Run training/inference loop here!
     train("weights/PPO", "assets/all_stops.csv")
     # infer("assets/study_area.csv", "573440")

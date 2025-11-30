@@ -15,7 +15,7 @@ class StopMLPPolicy(MlpPolicy):
 class StopFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space):
         super().__init__(observation_space)
-
+        
         # Dimensions from setting class 
         self.bb_dim = S.bb_total_dim
         self.yolo_dim = S.features_dim

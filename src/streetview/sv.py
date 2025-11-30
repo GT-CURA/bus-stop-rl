@@ -5,6 +5,7 @@ import math
 import cv2
 from src.streetview.move import Move
 from src.streetview.sv_requests import Reqs
+from src.streetview.graph_cache import GraphCache
 
 class StreetView:
     def __init__(self):
@@ -13,6 +14,7 @@ class StreetView:
         self.current_stop: Stop
         self.current_pic: Pic
         self.start_state = None
+        self.graph_cache = GraphCache()
 
     def goto_pt(self, stop: Stop = None):
         """ Used by loader class to pull initial image of point. """
@@ -39,7 +41,7 @@ class StreetView:
         self.current_img = self.reqs.pull_image(self.current_pic)
 
         # Build move class (pulls OSMNX graph)
-        self.move = Move(self.current_stop.og_lat, self.current_stop.og_lng)
+        self.move = Move(self.graph_cache, self.current_stop.og_lat, self.current_stop.og_lng)
         return True
 
     def get_img(self):

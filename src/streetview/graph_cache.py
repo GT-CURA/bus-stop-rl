@@ -4,8 +4,7 @@ from settings import S
 class GraphCache:
     def __init__(self, tile_size=0.02):
         """
-        tile_size: degrees (0.02 ≈ 2.2 km)
-        cache_dir: directory to save/load cached tiles
+        tile_size: degrees (0.02 is about 2.2 km)
         """
         self.tile_size = tile_size
         self.cache_dir = S.cache_dir

@@ -10,7 +10,7 @@ from src.streetview.sv_requests import Reqs
 EPS = 1e-6
 
 class Move:
-    def __init__(self, graph_cache, debug=False):
+    def __init__(self, graph_cache, lat, lng, debug=False):
         """
         - Builds an OSMnx drive graph around (lat, lng)
         - Keeps a cleaned, projected edges GeoDataFrame
@@ -20,7 +20,7 @@ class Move:
         self.reqs = Reqs()
 
         # Build graph around starting location (WGS84: lat/lng)
-        self.G_osm = self.cache.get_graph(pic.lat, pic.lng)
+        self.G_osm = self.cache.get_graph(lat, lng)
         nodes_gdf, edges_gdf = ox.graph_to_gdfs(self.G_osm)
 
         # Project edges to metric CRS (EPSG:3857) so distances are in meters

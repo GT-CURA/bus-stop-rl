@@ -68,12 +68,13 @@ class S:
 
     """ Don't Touch """
     bb_dim = 4                          # Vector containing bounding box cords, area, class
+    bb_total_dim = bbs_kept * (bb_dim + num_classes)
     features_dim = 256                  # Vector containing YOLO features
 
     geo_dim_basic = 8                   # Basic spatial info like lat/lng 
     geo_dim_graph = 10                  # Spatial feature vector (from graph class)
     geo_dim = geo_dim_basic + geo_dim_graph
 
-    frame_dim = features_dim + bbs_kept * (bb_dim + num_classes) + geo_dim
+    frame_dim = features_dim + bb_total_dim + geo_dim
     from datetime import datetime
     log_dir = f"{save_folder}/{datetime.now().strftime('%m-%d_%H-%M-%S')}/"
