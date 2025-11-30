@@ -1,7 +1,7 @@
 class S: 
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
-    run_server = True                   # Launch webserver, allowing you to view the program in action
+    run_server = False                  # Launch webserver, allowing you to view the program in action
     request_msgs = False                # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
     wait_time = 0                       # Wait time in seconds between steps
@@ -19,13 +19,13 @@ class S:
     """ RL Properties """
     img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 
     max_steps = 80                      # Max number of steps before forcibly moved to next stop
-    min_steps = 35                      # How many steps the model must take before giving up on a stop            
+    min_steps = 75                      # How many steps the model must take before giving up on a stop            
     dampen_scalor = .6                  # How much each score is dampened by
     free_spacebar_presses = 2           # How many times the model can return to start (press spacebar) before being punished
     free_steps_after_found = 5          # Start  punishing model after this many steps since finding stop
     max_steps_after_found = 10          # The number of steps after "found" that the model is allowed before forcibly moving on
     stack_sz = 40                       # Number of frames stacked
-    min_conf = .75                      # The minimum confidence value required to be considered "found"
+    min_conf = .8                       # The minimum confidence value required to be considered "found"
 
     """ Incentives / Penalties """
     after_found_punishment = .05        # How much to punish model per step after ^

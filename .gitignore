@@ -3,8 +3,9 @@ models/
 runs/
 key.txt
 .vscode/
-resources/utils/static/frame.jpg
+src/utils/server/static/frame.jpg
 keys.txt
 weights/
 cache/
 graph_cache/
+prev_runs/

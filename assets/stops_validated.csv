@@ -1,3 +1,4 @@
+,name,Stop_Name,Bus_Stop_Type,latitude,longitude,val_shelter,val_sign,val_seating,val_trash,val_exist,val_year,Notes,
 1444,902746,JOHNSON FERRY RD NE @ GLENRIDGE DR NE,Sign Strapped to Pole,33.922431,-84.367997,,1,,,1,2024,,
 1445,902749,ROSWELL RD NE @ ALLEN RD,Shelter,33.91372,-84.37955,1,1,1,1,1,2025,,
 1446,902751,ROSWELL RD NE @ HAMMOND DR NE,Shelter,33.918569,-84.379175,1,1,1,1,1,2024,Perpendicular,
@@ -814,4 +815,3 @@
 2055,907683,RALPH D ABERNATHY BLVD SW @ MCDANIEL ST SW,Sign on Post,33.736927,-84.401359,0,1,0,0,3,2025,,
 2056,907684,RALPH DAVID ABERNATH BLVD@WINDSOR S,Sign on Post,33.736862,-84.397915,0,1,0,0,3,2022,,
 2057,907709,WASHINGTON AVE @ EAST POINT ST,Sign on Post,33.675522,-84.443717,0,1,0,1,3,2025,,
-,name,Stop_Name,Bus_Stop_Type,latitude,longitude,val_shelter,val_sign,val_seating,val_trash,val_exist,val_year,Notes,
