@@ -7,7 +7,7 @@ class S:
     wait_time = 0                       # Wait time in seconds between steps
     img_height = 640                    # Height of images requested from streetview
     img_width = 640                     # Width of images requested from streetview
-    img_caching = False                 # Save images for reuse
+    cache_dir = "graph_cache"           # Directory to save OSMNX graph cache in 
     
     """ Stop Loader Properties """
     shuffle_stops = True               # Randomly shuffle stops
@@ -73,7 +73,7 @@ class S:
     geo_dim_basic = 8                   # Basic spatial info like lat/lng 
     geo_dim_graph = 10                  # Spatial feature vector (from graph class)
     geo_dim = geo_dim_basic + geo_dim_graph
-    
+
     frame_dim = features_dim + bbs_kept * (bb_dim + num_classes) + geo_dim
     from datetime import datetime
     log_dir = f"{save_folder}/{datetime.now().strftime('%m-%d_%H-%M-%S')}/"
