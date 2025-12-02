@@ -4,8 +4,8 @@ from shapely.geometry import Point, LineString
 from pyproj import Transformer
 import osmnx as ox
 from settings import S
-from src.utils.objects import Pic
-from src.streetview.sv_requests import Reqs
+from objects import Pic
+from sv_requests import Reqs
 
 EPS = 1e-6
 
@@ -18,6 +18,7 @@ class Move:
         self.cache = graph_cache
         self.debug = debug
         self.reqs = Reqs()
+        self.pic_cache = {}
 
         # Build graph around starting location (WGS84: lat/lng)
         self.G_osm = self.cache.get_graph(lat, lng)
@@ -128,22 +129,16 @@ class Move:
 
         # 5) Compute the geometric new point along the segment
         new_pt_m = seg.interpolate(target)
-        lon_geom, lat_geom = self.to_wgs.transform(new_pt_m.x, new_pt_m.y)
+        lng_geom, lat_geom = self.to_wgs.transform(new_pt_m.x, new_pt_m.y)
 
         # 6) Ask street view at that *geometric* location
         last_pano = getattr(pic, "pano_id", None)
-
-        candidate_pic = Pic(pic.heading, lat_geom, lon_geom)
-        candidate_pic.zoom_lvl = 0
-        candidate_pic.pano_id = None
-
-        ok = self.reqs.pull_pano_info(candidate_pic)
+        candidate_pic = self.get_metadata_for_point(lat_geom, lng_geom, pic.heading)
 
         # If we got a pano, we also check the *actual* pano location
         # (Google may snap it a few meters away).
-        got_new_pano = ok and candidate_pic.pano_id and candidate_pic.pano_id != last_pano
 
-        if got_new_pano:
+        if candidate_pic and candidate_pic.pano_id != last_pano:
             # Recompute world direction from original position to pano location
             cx, cy = self.to_m.transform(candidate_pic.lng, candidate_pic.lat)
             pano_pt = Point(cx, cy)
@@ -497,15 +492,10 @@ class Move:
                 cand = Point(base.x + off * perp[0], base.y + off * perp[1])
 
             # Call GSV metadata at this candidate metric point
-            lon, lat = self.to_wgs.transform(cand.x, cand.y)
-            tmp = Pic(original_heading, lat, lon)
-            tmp.zoom_lvl = 0
-            tmp.pano_id = None
+            lng, lat = self.to_wgs.transform(cand.x, cand.y)
+            tmp = self.get_metadata_for_point(lat, lng, original_heading)
 
-            ok = self.reqs.pull_pano_info(tmp)
-            if not ok or not tmp.pano_id:
-                continue
-            if tmp.pano_id == last_pano_id:
+            if tmp and tmp.pano_id == last_pano_id:
                 # Same pano as original → not a move
                 continue
 
@@ -588,3 +578,45 @@ class Move:
         """
         rad = math.radians((90 - heading_deg) % 360)
         return np.array([math.cos(rad), math.sin(rad)], float)
+    
+
+    def get_metadata_for_point(self, lat, lon, heading):
+        """
+        Unified metadata lookup:
+        - Checks cache first.
+        - Calls metadata only once per coordinate.
+        - Returns a Pic containing pano_id, coords, etc.
+        """
+
+        key = self._coord_key(lat, lon)
+
+        # Cache hit
+        if key in self.pic_cache:
+            pic = self.pic_cache[key]
+            cached = Pic(heading, pic.lat, pic.lng)
+            cached.pano_id = pic.pano_id
+            cached.date = pic.date
+            cached.zoom_lvl = 0
+            return cached
+
+        # Cache miss (call metadata)
+        tmp = Pic(heading, lat, lon)
+        tmp.zoom_lvl = 0
+        tmp.pano_id = None
+
+        ok = self.reqs.pull_pano_info(tmp)
+
+        if ok and tmp.pano_id:
+            # store in cache
+            self.pic_cache[key] = tmp
+            return tmp
+
+        # No pano found
+        return None
+
+    def _coord_key(self, lat, lon, precision=7):
+        """
+        Produces a stable hashable key for coordinates.
+        Rounding avoids floating drift and matches GSV precision.
+        """
+        return (round(lat, precision), round(lon, precision))
