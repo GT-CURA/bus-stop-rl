@@ -4,8 +4,8 @@ from shapely.geometry import Point, LineString
 from pyproj import Transformer
 import osmnx as ox
 from settings import S
-from objects import Pic
-from sv_requests import Reqs
+from src.utils.objects import Pic
+from src.streetview.sv_requests import Reqs
 
 EPS = 1e-6
 
