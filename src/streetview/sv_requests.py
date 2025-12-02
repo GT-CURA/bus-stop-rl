@@ -43,7 +43,7 @@ class Reqs:
     def old_pull_img(self, pic: Pic):
         # Increment usage count for current key
         self.usage_counts[self.key] += 1
-        # self._save_usage_counts()
+        self._save_usage_counts()
 
         # Rotate key if usage exceeds max allowed
         if self.usage_counts[self.key] >= self.max_uses_per_key:
