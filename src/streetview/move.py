@@ -164,7 +164,7 @@ class Move:
                 dot = 0.0
 
             # Accept pano if it lies roughly in the movement direction (dot > 0)
-            if dot > 0.0:
+            if dot > -.3:
                 if self.debug:
                     print("[Move] Geometric step produced new pano directly "
                           f"(dot={dot:.3f}, dist={dist_vec:.1f}m).")
