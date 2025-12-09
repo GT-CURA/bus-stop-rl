@@ -31,6 +31,9 @@ class StreetView:
             )
             self.current_pic = pic 
 
+        else:
+            return False 
+        
         # Pull metadata request to find pano location
         if self.current_pic.pano_id == None:
             self.reqs.pull_pano_info(self.current_pic)
