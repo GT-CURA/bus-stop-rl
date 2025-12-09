@@ -1,6 +1,6 @@
 from collections import deque
 import numpy as np
-from src.utils.objects import Hypothesis
+from src.utils.objects import Hypothesis, Detection, Pic
 
 class Node:
     def __init__(self, lat, lng):
@@ -24,7 +24,7 @@ class Node:
 
 class Graph:
 
-    def __init__(self, debug=False):
+    def __init__(self, initial_lat, initial_lng, debug=False):
         self.graph = {}
         self.prev_node_id = None
         self.hypotheses = []
@@ -33,8 +33,14 @@ class Graph:
         self.debug = debug
         self.conf_threshold = .4
         self.prev_coord_dist = None
+        self.prev_coord_hyp = None
+        self.initial_lat = initial_lat
+        self.initial_lng = initial_lng
+        self.last_dir_err = (0.0, 0.0)
+        self.last_coord_dist_scaled = 0.0
+        self.last_has_triangulated = 0.0
 
-    def add_node(self, pic, add_neighbors = True):
+    def add_node(self, pic: Pic, add_neighbors = True):
         """ Adds and updates nodes. """
         # Add node to graph if not there
         if pic.pano_id not in self.graph:
@@ -58,60 +64,73 @@ class Graph:
 
     def calc_graph_rwd(self, current_pano_id):
         """
-        Potential-based shaping reward using BFS distance to the single
-        best pano node (highest best_conf). Works even before hypotheses exist.
+        Calculates distance to nodes with best observations. 
         """
+        # Log for get_features
+        self.last_bfs_scaled = 0.0
 
-        if not self.graph:
+        # Return nothing if no hypotheses exist 
+        if not self.hypotheses:
             return 0.0
 
-        # Find pano with max best_conf
-        best_id = max(self.graph.keys(), key=lambda nid: self.graph[nid].best_conf)
-        if self.graph[best_id].best_conf == 0:
-            self.prev_dist_to_best = None
+        # Find best hypothesis
+        best_hyp = max(self.hypotheses, key=lambda h: h.score)
+
+        # Find pano_ids related to this hyp
+        pano_ids = {det.pano_id for det in best_hyp.observations}
+        if not pano_ids:
             return 0.0
 
-        # Find shortest distance to that pano
-        dist = self.shortest_distance(current_pano_id, [best_id])
+        # Shortest distance to panos 
+        dist = self.shortest_distance(current_pano_id, pano_ids)
         if dist is None:
             return 0.0
 
-        # Initialize
+        # Update previous dist to best 
         if self.prev_dist_to_best is None:
             self.prev_dist_to_best = dist
             return 0.0
 
-        # Reward is difference between 
+        # Calc reward 
         reward = self.prev_dist_to_best - dist
         self.prev_dist_to_best = dist
+
+        # If dist, set for get_features
+        self.last_bfs_scaled = np.tanh(dist / 10.0)
         return reward
     
     def shortest_distance(self, start_id, target_ids):
-        """ Finds shortest distance between two nodes. """
+        """ Finds shortest distance between start and target nodes. """
         # If already at target, return 0 
         if start_id in target_ids:
             return 0
 
-        # Build queue of (ids, dists)
         visited = set()
-        queue = deque([(start_id, 0)])
+        
+        # Create queue with each target ID having a dist of zero 
+        queue = deque([(tid, 0) for tid in target_ids if tid in self.graph])
 
+        # Mark all targets as visited
+        for tid in target_ids:
+            visited.add(tid)
+
+        # Pop queue until hit target ID 
         while queue:
-            # Get latest node, mark as visited 
             nid, dist = queue.popleft()
-            visited.add(nid)
 
-            # Visit neighbors, adding to queue 
+            # Explore neighbors
             for nb in self.graph[nid].neighbors:
-                if nb in target_ids:
+                if nb == start_id:
                     return dist + 1
+                
+                # Mark as visited
                 if nb not in visited:
+                    visited.add(nb)
                     queue.append((nb, dist + 1))
 
         return None
 
-
-    def calc_direction_rwd(self, curr_node, curr_heading):
+    def calc_direction_rwd(self, curr_node: Node, pic: Pic):
         """
         Direction reward: 
         1. If the current frame produced a detection, use its bearing immediately.
@@ -129,12 +148,21 @@ class Graph:
         # Default to using latest detection
         if latest_det is not None:
             desired = latest_det.bearing
-            curr_err = abs(wrap(curr_heading - desired))
+            err = wrap(pic.heading - desired)
 
+            # Store bearing error for get_features
+            self.last_dir_err = (
+                np.sin(np.radians(err)),
+                np.cos(np.radians(err))
+            )
+
+            # Take absolute value for reward
+            curr_err = abs(err)
             if self.prev_det_bearing_err is None:
                 self.prev_det_bearing_err = curr_err
                 return 0.0
-
+            
+            # Calc reward 
             reward = (self.prev_det_bearing_err - curr_err) / 180.0
             self.prev_det_bearing_err = curr_err
 
@@ -147,17 +175,33 @@ class Graph:
 
         # Fall back to using hypotheses 
         if self.hypotheses:
+            # Get best hypothesis
             best = max(self.hypotheses, key=lambda h: h.score)
-            if getattr(best, "best_bearing", None) is None:
+
+            # Bearing from current pano to triangulated stop
+            if best.triangulated_pos is not None:
+                pano_x, pano_y = self.localize_coords(pic.lat, pic.lng, self.initial_lat, self.initial_lng)
+                desired = self.bearing_from(pano_x, pano_y, best.triangulated_pos)
+            elif getattr(best, "best_bearing", None) is not None:
+                # Fallback: use stored bearing if no triangulation yet
+                desired = best.best_bearing
+            else:
                 return 0.0
 
-            desired = best.best_bearing
-            curr_err = abs(wrap(curr_heading - desired))
+            # Store error for get_features
+            err = wrap(pic.heading - desired)
+            self.last_dir_err = (
+                np.sin(np.radians(err)),
+                np.cos(np.radians(err))
+            )
 
+            # Update prev bearing error
+            curr_err = abs(err)
             if getattr(best, "prev_bearing_err", None) is None:
                 best.prev_bearing_err = curr_err
                 return 0.0
 
+            # Calc reward 
             reward = (best.prev_bearing_err - curr_err) / 180.0
             best.prev_bearing_err = curr_err
             return reward
@@ -165,30 +209,43 @@ class Graph:
         # No directional signal
         return 0.0
 
-    def calc_coord_rwd(self, pano_x, pano_y):
-        """
-        Encourgages movement towards an estimated stop coordinate. 
-        """
+    def calc_coord_rwd(self, pic: Pic):
+        """ Reward agent for stepping towards an estimated coord for bus stop. """
+        pano_x, pano_y = self.localize_coords(pic.lat, pic.lng, self.initial_lat, self.initial_lng)
 
         # Only use hypotheses with a triangulated position
         triangulated = [h for h in self.hypotheses if h.triangulated_pos is not None]
         if not triangulated:
+            self.prev_coord_hyp = None
+            self.prev_coord_dist = None
+            self.last_coord_dist_scaled = 0.0
+            self.last_has_triangulated = 0.0
             return 0.0
 
-        # Get best hypothesis 
+        # GEt best hyp
         best = max(triangulated, key=lambda h: h.score)
         best_x, best_y = best.triangulated_pos
 
-        # Calculate distance between pano and best hyp
+        # Current distance from pano to best hypothesis
         dist = np.linalg.norm([pano_x - best_x, pano_y - best_y])
 
-        # Init previous distance
+        # Log distance for get_features
+        self.last_coord_dist_scaled = np.tanh(dist / 50.0)
+        self.last_has_triangulated = 1.0
+
+        # If we just switched to a different best hypothesis, (re)initialize
+        if self.prev_coord_hyp is not best:
+            self.prev_coord_hyp = best
+            self.prev_coord_dist = dist
+            return 0.0
+
+        # If first time tracking this hypothesis
         if self.prev_coord_dist is None:
             self.prev_coord_dist = dist
             return 0.0
 
-        # Calc reward
-        reward = (self.prev_coord_dist - dist) / 20.0
+        # Positive when moving closer, negative when moving away
+        reward = (self.prev_coord_dist - dist) / 10.0 
         self.prev_coord_dist = dist
         return reward
     
@@ -197,7 +254,7 @@ class Graph:
         rays: list of dicts with {x, y, bearing}
         Returns (x,y) triangulated intersection or None if rays are parallel.
         """
-        # Return if no rays
+
         if len(rays) < 2:
             return None
 
@@ -206,21 +263,21 @@ class Graph:
             for j in range(i + 1, len(rays)):
                 r1, r2 = rays[i], rays[j]
 
-                # Convert first cords to ray 
+                # First ray
                 x1, y1 = r1["x"], r1["y"]
                 t1 = np.radians(r1["bearing"])
-                d1 = np.array([np.cos(t1), np.sin(t1)])
+                d1 = np.array([np.sin(t1), np.cos(t1)])
 
-                # Convert second coords to ray 
+                # Second ray
                 x2, y2 = r2["x"], r2["y"]
                 t2 = np.radians(r2["bearing"])
-                d2 = np.array([np.cos(t2), np.sin(t2)])
+                d2 = np.array([np.sin(t2), np.cos(t2)])
 
                 A = np.array([[d1[0], -d2[0]],
-                              [d1[1], -d2[1]]])
+                            [d1[1], -d2[1]]])
                 b = np.array([x2 - x1, y2 - y1])
 
-                # Skip if rays are parallel 
+                # Skip if rays are (near-)parallel
                 if abs(np.linalg.det(A)) < 1e-6:
                     continue
 
@@ -234,29 +291,29 @@ class Graph:
         if not pts:
             return None
 
-        # Return points 
         pts = np.array(pts)
         return float(pts[:, 0].mean()), float(pts[:, 1].mean())
 
-    def match_hypothesis(self, hyp, det):
-        """
-        Checks if a given detection matches an existing hypothesis.
-        """
-        # Type match
-        if hyp.label != det.label:
-            return False
+    def bearing_from(self, x1, y1, target_xy):
+        """ Computes bearing (0–360°) from camera (x1, y1) to stop at target_xy = (x2, y2). """
+        x2, y2 = target_xy
 
-        # Ensure bearings match (take mean of bearings)
-        mean_bearing = np.mean([o.bearing for o in hyp.observations])
-        diff = abs(((mean_bearing - det.bearing + 180) % 360) - 180)
-        if diff > 60:
-            return False
+        dx = x2 - x1
+        dy = y2 - y1
 
-        return True
+        # Convert so that 0 degrees is north
+        angle = np.degrees(np.arctan2(dy, dx))
+        bearing = (90.0 - angle) % 360.0
 
-    def update_hypotheses(self, node, step):
-        """ Evaluate detections from this frame and update hypotheses.
-        """
+        return bearing
+
+    def angular_diff(self, a, b):
+        """ Returns smallest angular difference between two bearings. """
+        diff = (a - b + 180) % 360 - 180
+        return abs(diff)
+    
+    def update_hypotheses(self, node: Node, step: int):
+        """ Evaluate detections from this frame and update hypotheses. """
 
         # Only use detections from this frame
         frame_dets = [d for d in node.detections if d.timestamp == step]
@@ -264,8 +321,8 @@ class Graph:
             return
 
         for det in frame_dets:
-            
-            # Ensure deteection's conf meets threshold 
+
+            # Ensure detection's conf meets threshold
             if det.primary_conf < self.conf_threshold:
                 continue
 
@@ -277,17 +334,19 @@ class Graph:
                     hyp.observations.append(det)
 
                     # Triangulate from all hyp's observations
-                    rays = [{"x": o.local_x, "y": o.local_y, "bearing": o.bearing}
-                            for o in hyp.observations]
+                    rays = [
+                        {"x": o.local_x, "y": o.local_y, "bearing": o.bearing}
+                        for o in hyp.observations
+                    ]
                     tri = self.triangulate(rays)
                     if tri is not None:
                         hyp.triangulated_pos = tri
 
-                        # Reset coordinate reward memory
-                        self.prev_coord_dist = None
-
                     # Update score (includes box size)
-                    hyp.score = max(hyp.score, det.primary_conf * (det.box_sz + 1e-6))
+                    hyp.score = max(
+                        hyp.score,
+                        det.primary_conf * (det.box_sz + 1e-6)
+                    )
                     hyp.last_seen = step
                     merged = True
                     break
@@ -304,102 +363,66 @@ class Graph:
                 label=det.label,
                 last_seen=step,
                 best_bearing=det.bearing,
-                prev_bearing_err=None
+                prev_bearing_err=None,
+                side=det.side
             )
             self.hypotheses.append(new_hyp)
 
-        # Keep 3 higest scoring hyps
+        # Keep top 3 hypotheses by score
         self.hypotheses = sorted(self.hypotheses, key=lambda h: -h.score)[:3]
 
 
-    def get_features(self, node, curr_lat, curr_lng, curr_heading):
-        """ Producesa feature vector providing info relevant to spatial rewards system. """
-        # 1. Calculate direction error 
-        def wrap(a):
-            return ((a + 180) % 360) - 180
+    def match_hypothesis(self, hyp: Hypothesis, det: Detection):
+        """
+        Checks if a given detection matches an existing hypothesis.
+        """
+        # Type match
+        if hyp.label != det.label:
+            return False
 
-        # Get latest detection
-        latest_det = node.detections[-1] if node.detections else None
+        # Ensure same side of street (logic handled in Streetview lol) 
+        if hyp.side != det.side:
+            return False
+        
+        return True
 
-        # Set desired bearing to latest detection, or fall back to hypothessi 
-        desired_bearing = None
-        if latest_det is not None:
-            desired_bearing = latest_det.bearing
-        else:
-            if self.hypotheses:
-                best_h = max(self.hypotheses, key=lambda h: h.score)
-                if getattr(best_h, "best_bearing", None) is not None:
-                    desired_bearing = best_h.best_bearing
+    def get_features(self, node: Node):
+        """ Produces a feature vector providing info relevant to spatial rewards system. """
 
-        # Calc heading error, break into sin cos
-        if desired_bearing is not None:
-            bearing_err = wrap(curr_heading - desired_bearing)
-            err_sin = np.sin(np.radians(bearing_err))
-            err_cos = np.cos(np.radians(bearing_err))
-        else:
-            err_sin, err_cos = 0.0, 0.0
+        # 1. Direction error features
+        dir_sin, dir_cos = self.last_dir_err if hasattr(self, "last_dir_err") else (0.0, 0.0)
 
         # 2. Coordinate reward features
-        # Find hypotheses with triangulated pos 
-        triangulated = [h for h in self.hypotheses if h.triangulated_pos is not None]
-
-        if triangulated:
-            # Get best hyp
-            best_hyp = max(triangulated, key=lambda h: h.score)
-
-            # Get dist to best hyp, scale it 
-            best_x, best_y = best_hyp.triangulated_pos
-            coord_dist = np.linalg.norm([curr_lat - best_x, curr_lng - best_y])
-            coord_dist_scaled = np.tanh(coord_dist / 50)
-
-            # Calc change in distance
-            if self.prev_coord_dist is not None:
-                delta_coord = self.prev_coord_dist - coord_dist
-            else:
-                delta_coord = 0.0
-
-            # Tell agent if we have a triangulated hyp to pursue
-            has_triangulated = 1.0
-        else:
-            coord_dist_scaled = 0.0
-            delta_coord = 0.0
-            has_triangulated = 0.0
+        coord_dist_scaled = getattr(self, "last_coord_dist_scaled", 0.0)
+        has_triangulated = getattr(self, "last_has_triangulated", 0.0)
 
         # 3. Graph reward features
-        if self.graph:
-            # GEt node with best confidence
-            best_id = max(self.graph.keys(), key=lambda nid: self.graph[nid].best_conf)
-            best_conf = self.graph[best_id].best_conf
+        bfs_scaled = getattr(self, "last_bfs_scaled", 0.0)
 
-            # Find distance to best node 
-            bfs_dist = self.shortest_distance(node.pano_id, [best_id])
-            bfs_scaled = np.tanh((bfs_dist or 0) / 10)
+        # Local graph structure
+        visit_scaled = min(node.visits / 10.0, 1.0)
+        degree_scaled = min(len(node.neighbors) / 10.0, 1.0)
 
-            # Calc chance in distance to best node
-            if self.prev_dist_to_best is not None and bfs_dist is not None:
-                delta_bfs = self.prev_dist_to_best - bfs_dist
-            else:
-                delta_bfs = 0.0
+        # Node confidence can help measure usefulness of this location
+        best_conf = node.best_conf
 
-        else:
-            best_conf = 0.0
-            bfs_scaled = 0.0
-            delta_bfs = 0.0
-
-        # 4. Local graph features
-        visit_scaled = min(node.visits / 10, 1)
-        degree_scaled = min(len(node.neighbors) / 10, 1)
-
-        # 5. Build the vector 
+        # Final PPO-compatible vector
         return np.array([
-            err_sin,
-            err_cos,
+            dir_sin,
+            dir_cos,
             coord_dist_scaled,
-            delta_coord,
             has_triangulated,
             bfs_scaled,
-            delta_bfs,
             best_conf,
             visit_scaled,
-            degree_scaled
+            degree_scaled,
         ], dtype=np.float32)
+    
+    def localize_coords(self, lat, lng, initial_lat, initial_lng):
+        """ Make cords relative to origin (starting position for this stop) """
+        R = 6371000
+        dlat = np.radians(lat - initial_lat)
+        dlon = np.radians(lng - initial_lng)
+        x = R * dlon * np.cos(np.radians(initial_lat))
+        y = R * dlat
+        return x, y

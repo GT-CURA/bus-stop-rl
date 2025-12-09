@@ -14,7 +14,7 @@ class StreetViewEnv(gym.Env):
         # Set stuff up!!
         super().__init__()
         self.sv = streetview
-        self.stop_detector = StopDetector()
+        self.stop_detector = StopDetector(self.sv)
         self.stop_loader = stop_loader
 
         # PPO model design
@@ -51,9 +51,7 @@ class StreetViewEnv(gym.Env):
             yolo_output, 
             self.episode.current_node,
             self.sv.current_pic,
-            0,
-            self.episode.initial_lat,
-            self.episode.initial_lng
+            0
         )
 
         # Reset episode-specific vars

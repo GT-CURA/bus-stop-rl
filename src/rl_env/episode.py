@@ -1,8 +1,8 @@
-import numpy as np
-from settings import S
 from src.stop_detector import StopDetector
-from src.utils.misc import Misc
+import numpy as np 
+from settings import S
 from src.rl_env.graph import Graph
+from math import radians, sin, cos, sqrt, atan2
 
 class Episode():
     def __init__(self, stop, stop_detector: StopDetector, pic):
@@ -22,24 +22,20 @@ class Episode():
         self.initial_lat, self.initial_lng, self.initial_heading = pic.lat, pic.lng, pic.heading
 
         # Build graph class
-        self.graph = Graph()
+        self.graph = Graph(self.initial_lat, self.initial_lng)
 
-    def get_features(self, img, output, pic, add_neighbors=True):
-        # Build node
-        self.current_node = self.graph.add_node(pic, add_neighbors)
+        # Build current node
+        self.current_node = self.graph.add_node(pic, False)
 
+    def get_features(self, img, output, pic):
         # Get features, bb info from stop detector
-        yolo_feats = self.stop_detector.extract_features(img, output)
+        yolo_vec = self.stop_detector.extract_features(img, output)
 
         # Get spatial info from SV URL
         lat, lng, heading = pic.lat, pic.lng, pic.heading
-        
-        # Calculate diff between initial and new lats
-        delta_lat = lat - self.initial_lat
-        delta_lon = lng - self.initial_lng
 
         # Calculate distance vector. Grows smaller after 50 meters
-        dist = Misc.haversine(self.initial_lat, self.initial_lng, lat, lng)
+        dist = self.haversine(self.initial_lat, self.initial_lng, lat, lng)
         dist_scaled = np.tanh(dist / 50)
 
         # Normalize heading difference
@@ -61,8 +57,6 @@ class Episode():
 
         # Put all into a vec 
         spatial_vec = np.array([
-            delta_lat,
-            delta_lon,
             dist_scaled,
             heading_sin,
             heading_cos,
@@ -71,15 +65,11 @@ class Episode():
             remaining_steps
         ], dtype=np.float32)
 
-        # Get features relevant to spatial rewards system from graph class
-        spatial_graph_vec = self.graph.get_features(
-            self.current_node,
-            lat, lng,
-            heading
-        )
+        # Get graph features
+        graph_vec = self.graph.get_features(self.current_node)
 
         # Concat features
-        return np.concat([yolo_feats, spatial_vec, spatial_graph_vec]).astype(np.float32)
+        return np.concatenate([yolo_vec, spatial_vec, graph_vec]).astype(np.float32)
 
     def update(self, key, img, pic):
         # Update steps if key != enter
@@ -100,20 +90,17 @@ class Episode():
         # Run stop detector model to get conf for assessment
         output = self.stop_detector.run(img)
 
-        # Extract features from observation
-        add_neighbors = True
-        if key == "Return":
-            add_neighbors = False
-        features = self.get_features(img, output, pic, add_neighbors)
+        # Build/update current node object 
+        add_neighbors = True if key != "Return" else False
+        self.current_node = self.graph.add_node(pic, add_neighbors)
 
         # Use output to derive initial score
         conf, found = self.stop_detector.score_output(
             output, 
             self.current_node, 
             pic, 
-            self.steps,
-            self.initial_lat,
-            self.initial_lng)
+            self.steps
+        )
 
         # Update guesses
         self.graph.update_hypotheses(self.current_node, self.steps)
@@ -134,17 +121,17 @@ class Episode():
         elif self.found: 
             self.steps_since_found += 1
 
+        # Extract features from observation
+        features = self.get_features(img, output, pic)
+
+        # Update log
         self.log.append(key)
 
         # Add to total reward for this episode (for logging)
         self.reward += reward 
 
-        # Write log if done
-        # if done:
-        #     self.log_manager.add(self)
-    
         # Announce results to console 
-        Misc.announce(self, key, reward)
+        self.announce(key, reward)
         self.prev_move = key
         return features, reward, done
     
@@ -216,8 +203,8 @@ class Episode():
 
         # Calulate spatial rewards 
         graph_rwd = self.graph.calc_graph_rwd(pic.pano_id)
-        direction_rwd = self.graph.calc_direction_rwd(self.current_node, pic.heading)
-        coord_rwd = self.graph.calc_coord_rwd(pic.lat, pic.lng)
+        direction_rwd = self.graph.calc_direction_rwd(self.current_node, pic)
+        coord_rwd = self.graph.calc_coord_rwd(pic)
         
         # Apply weights to spatial rewards 
         graph_rwd *= S.graph_weight
@@ -233,3 +220,19 @@ class Episode():
         final_reward = np.clip(reward, -.5, .5)
         print(f"Graph reward: {graph_rwd} \nDirection reward: {direction_rwd} \nCoord Reward: {coord_rwd}")
         return final_reward, done
+    
+    def haversine(self, lat1, lon1, lat2, lon2):
+        """ Implementation of the haversine formula to obtain distance from initial to new cords. """
+        R = 6371000
+        dlat = radians(lat2 - lat1)
+        dlon = radians(lon2 - lon1)
+        a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+        return R * 2 * atan2(sqrt(a), sqrt(1 - a))
+    
+    def announce(self, key, reward):
+        """ Print stop info and action to console at each step. """
+        name = self.stop.place_name
+        lat = self.stop.og_lat
+        lon = self.stop.og_lng
+        print(f"[Step {self.steps}] Action: '{key}' | Reward: {reward:.3f} | Steps Since Found: {self.steps_since_found}")
+        print(f"Stop: {name} ({lat}, {lon})")

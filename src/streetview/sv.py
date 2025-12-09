@@ -1,9 +1,9 @@
-from src.utils.objects import Stop, Pic
 from settings import S
 import numpy as np
 import math
 import cv2
 from src.streetview.move import Move
+from src.utils.objects import Stop, Pic
 from src.streetview.sv_requests import Reqs
 from src.streetview.graph_cache import GraphCache
 
@@ -42,6 +42,9 @@ class StreetView:
 
         # Build move class (pulls OSMNX graph)
         self.move = Move(self.graph_cache, self.current_stop.og_lat, self.current_stop.og_lng)
+
+        # Calc initial road vectors
+        self.move.calc_rd_vectors(pic)
         return True
 
     def get_img(self):
@@ -142,3 +145,27 @@ class StreetView:
         heading = math.degrees(heading)
         heading = (heading + 360) % 360
         pic.heading = heading
+
+    def calc_street_side(self, det):
+
+        # Get road vectors
+        perp = self.move.get_road_vec()
+
+        # Camera's location 
+        cam_x, cam_y = det.local_x, det.local_y
+
+        # Convert bearing to world-space direction vector where 0 degress is north
+        theta = np.radians(det.bearing)
+        dir_vec = np.array([np.sin(theta), np.cos(theta)])
+
+        # Estimate object XY just to differentiate from objects on other side of the road
+        obj_x = cam_x + 20 * dir_vec[0]
+        obj_y = cam_y + 20 * dir_vec[1]
+
+        # Vector to object
+        to_obj = np.array([obj_x - cam_x, obj_y - cam_y])
+        to_obj /= (np.linalg.norm(to_obj) + 1e-9)
+
+        # Classify side
+        side_value = np.dot(to_obj, perp)
+        det.side = "left" if side_value > 0 else "right"

@@ -19,6 +19,7 @@ class Move:
         self.debug = debug
         self.reqs = Reqs()
         self.pic_cache = {}
+        self.last_perp = None
 
         # Build graph around starting location (WGS84: lat/lng)
         self.G_osm = self.cache.get_graph(lat, lng)
@@ -133,6 +134,7 @@ class Move:
 
         # 6) Ask street view at that *geometric* location
         last_pano = getattr(pic, "pano_id", None)
+
         candidate_pic = self.get_metadata_for_point(lat_geom, lng_geom, pic.heading)
 
         # If we got a pano, we also check the *actual* pano location
@@ -270,6 +272,9 @@ class Move:
                 continue
             # Calc unit tangent 
             tangent /= n 
+
+            # For street side calculation
+            self.last_perp = (-tangent[1], tangent[0])
 
             # 3) Evaluate alignment of BOTH pos/neg tangent with movement_vec
             align_pos = float(np.dot(tangent, movement_vec))
@@ -620,3 +625,26 @@ class Move:
         Rounding avoids floating drift and matches GSV precision.
         """
         return (round(lat, precision), round(lon, precision))
+    
+    def calc_rd_vectors(self, pic: Pic):
+        """
+        Computes tangent and perpendicular road vectors at the initial agent
+        position (x, y). This must be called before any movement so detections
+        can be classified immediately.
+        """
+        # Current pos to metric
+        px, py = self.to_m.transform(pic.lng, pic.lat)
+        pt_m = Point(px, py)
+
+        # Compute a movement vec bc we have to
+        movement_vec = self._heading_to_unitvec(pic.heading)
+
+        # 3) Find nearby road edges
+        candidates = self.get_nearby_edges(pt_m, radius=15)
+
+        # Basically dry fire choose best edge so it will update last tangent and last perp.
+        self.choose_best_edge(pt_m, movement_vec, candidates)
+
+    def get_road_vec(self):
+        """ Used to determine street side of a detection. """
+        return self.last_perp

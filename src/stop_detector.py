@@ -4,26 +4,32 @@ import torch
 import cv2
 import numpy as np
 from src.rl_env.graph import Node
-from src.utils.objects import Detection, Pic
+from src.utils.objects import Detection, Pic 
+from src.streetview.sv import StreetView
 
 # A wrapper for the YOLO model trained to detect stops
 class StopDetector:
 
-    def __init__(self):
+    def __init__(self, sv: StreetView):
         self.model = YOLO(S.yolo_path)
+        self.sv = sv
 
     def run(self, img):
         # Run model
         output = self.model(img)[0]
 
         # Save output
-        if S.run_server: output.save("src/utils/server/static/frame.jpg")
+        if S.run_server: output.save("resources/static/frame.jpg")
         return output
 
-    def score_output(self, output, node: Node, pic: Pic, step, initial_lat, initial_lng):
+    def score_output(self, output, node: Node, pic: Pic, step):
         # No boxes
         if len(output.boxes) == 0: 
             return 0.0, False
+
+        # Get initial coords 
+        initial_lat = self.sv.start_state["lat"]
+        initial_lng = self.sv.start_state["lng"]
 
         # Scores to be calculated
         primary_score = 0.0
@@ -63,8 +69,12 @@ class StopDetector:
                     lat = pic.lat,
                     lng = pic.lng, 
                     local_x=local_x,
-                    local_y=local_y
+                    local_y=local_y,
+                    side=None
                 )
+
+                # Calc side of road 
+                self.sv.calc_street_side(det)
                 node.detections.append(det)
 
                 # If highest conf primray, set as primary score and get bearing
