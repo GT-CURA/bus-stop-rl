@@ -13,6 +13,7 @@ class StopLoader:
         self.index = 0
         self.stops = None
         self.stop_detector: StopDetector = None
+        self.num_loaded = 0
         
     def load_stops(self, path: str, ignore_path: str = None):
         # Find which stops to ignore if specified
@@ -86,7 +87,7 @@ class StopLoader:
             return self.load_stop()
 
         # After 150 stops, if stop is a positive, scramble
-        if self.index > S.before_scrambling and S.scramble_stops:
+        if self.num_loaded > S.before_scrambling and S.scramble_stops:
                 
                 # Check if stop is visible 
                 img = self.sv.get_img()
@@ -100,6 +101,7 @@ class StopLoader:
         # Tell SV to log initial position
         self.index += 1
         self.sv.set_start()
+        self.num_loaded += 1
         return stop
 
     """ WIP way to use positive stops to train """
