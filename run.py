@@ -6,7 +6,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 
 # Project modules
 from settings import S
-from feature_extractor import StopMLPPolicy
+from src.feature_extractor import StopMLPPolicy
 from src.rl_env.env import StreetViewEnv
 from src.streetview.sv import StreetView
 from src.utils.loader import StopLoader
