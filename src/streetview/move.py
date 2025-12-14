@@ -648,3 +648,46 @@ class Move:
     def get_road_vec(self):
         """ Used to determine street side of a detection. """
         return self.last_perp
+    
+    def snap_pt(self, lat, lng):
+        """ Snap onto nearest road if not nearby. """
+        max_search_dist=50.0
+        on_road_tol=2.0
+
+        # Convert to metric
+        x, y = self.to_m.transform(lng, lat)
+        pt_m = Point(x, y)
+
+        # Find nearby edges
+        candidates = self.get_nearby_edges(pt_m, radius=max_search_dist)
+        if candidates.empty:
+            return None
+
+        best_dist = float("inf")
+        best_proj_pt = None
+
+        for _, row in candidates.iterrows():
+            seg = row["geom_line"]
+
+            # Distance from point to road
+            d = seg.distance(pt_m)
+
+            # If already close to road, don't snap
+            if d <= on_road_tol:
+                return lat, lng
+
+            # Otherwise track closest projection
+            proj = seg.project(pt_m)
+            proj_pt = seg.interpolate(proj)
+
+            if d < best_dist:
+                best_dist = d
+                best_proj_pt = proj_pt
+
+        if best_proj_pt is None:
+            return None
+
+        # Snap to closest road
+        lng2, lat2 = self.to_wgs.transform(best_proj_pt.x, best_proj_pt.y)
+        print("[Move] Snapped spawn point to nearby street.")
+        return lat2, lng2

@@ -17,38 +17,47 @@ class StreetView:
         self.graph_cache = GraphCache()
 
     def goto_pt(self, stop: Stop = None):
-        """ Used by loader class to pull initial image of point. """
-        # Go to the inputted stop (first use for episode)
-        if stop:
-            # If this is the initial use, define starting stop
-            self.current_stop = stop
+        # Return if failed to load stop
+        if not stop:
+            return False
+        self.current_stop = stop
 
-            # Build pic using stop's info, set as current pic
-            pic = Pic(
-                heading=None,
-                lat=stop.og_lat,
-                lng=stop.og_lng,
-            )
-            self.current_pic = pic 
+        # Build Move class (pull OSMNX)
+        self.move = Move(self.graph_cache, stop.og_lat, stop.og_lng)
 
+        # Snap spawnpoint to road (don't spawn in parking lot)
+        snapped = self.move.snap_pt(
+            stop.og_lat,
+            stop.og_lng,
+        )
+
+        # Use snapped pos if it succeeded, else inputted cords
+        if snapped:
+            lat, lng = snapped
         else:
-            return False 
-        
-        # Pull metadata request to find pano location
-        if self.current_pic.pano_id == None:
+            lat, lng = stop.og_lat, stop.og_lng
+
+        pic = Pic(
+            heading=None,
+            lat=lat,
+            lng=lng,
+        )
+        self.current_pic = pic
+
+        # Now do normal GSV flow
+        if self.current_pic.pano_id is None:
             self.reqs.pull_pano_info(self.current_pic)
-        if self.current_pic.heading == None:
+
+        if self.current_pic.heading is None:
             self._estimate_heading(self.current_pic, stop)
 
-        # Pull image
         self.current_img = self.reqs.pull_image(self.current_pic)
 
-        # Build move class (pulls OSMNX graph)
-        self.move = Move(self.graph_cache, self.current_stop.og_lat, self.current_stop.og_lng)
+        # Road vectors now make sense immediately
+        self.move.calc_rd_vectors(self.current_pic)
 
-        # Calc initial road vectors
-        self.move.calc_rd_vectors(pic)
         return True
+
 
     def get_img(self):
         """ Load bytes from streetview into CV2 image. """
