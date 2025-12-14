@@ -154,6 +154,11 @@ class StreetView:
         # Get road vectors
         perp = self.move.get_road_vec()
 
+        # NOTE: Fix this 
+        if perp is None: 
+            det.side = "right"
+            return 
+
         # Camera's location 
         cam_x, cam_y = det.local_x, det.local_y
 
