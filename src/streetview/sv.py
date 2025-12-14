@@ -37,6 +37,7 @@ class StreetView:
         else:
             lat, lng = stop.og_lat, stop.og_lng
 
+        # Build pic 
         pic = Pic(
             heading=None,
             lat=lat,
@@ -44,16 +45,18 @@ class StreetView:
         )
         self.current_pic = pic
 
-        # Now do normal GSV flow
+        # Pull pano ID if we don't have it 
         if self.current_pic.pano_id is None:
             self.reqs.pull_pano_info(self.current_pic)
 
+        # Calculate heading
         if self.current_pic.heading is None:
             self._estimate_heading(self.current_pic, stop)
 
+        # Pull image
         self.current_img = self.reqs.pull_image(self.current_pic)
 
-        # Road vectors now make sense immediately
+        # Calculate initial road vectors
         self.move.calc_rd_vectors(self.current_pic)
 
         return True
@@ -117,8 +120,8 @@ class StreetView:
         self.current_pic.zoom_lvl = self.start_state["zoom_lvl"]
         self.current_pic.date = self.start_state["date"]
 
-        # Go to original pos
-        self.goto_pt()
+        # Pull image
+        self.current_img = self.reqs.pull_image(self.current_pic)
 
     def set_start(self):
         """ Log the current Pic's attributes, setting it as the starting point """
