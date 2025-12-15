@@ -2,7 +2,7 @@ from src.stop_detector import StopDetector
 import numpy as np 
 from settings import S
 from src.rl_env.graph import Graph
-from math import radians, sin, cos, sqrt, atan2
+from src.utils.tools import haversine
 
 class Episode():
     def __init__(self, stop, stop_detector: StopDetector, pic):
@@ -35,7 +35,7 @@ class Episode():
         lat, lng, heading = pic.lat, pic.lng, pic.heading
 
         # Calculate distance vector. Grows smaller after 50 meters
-        dist = self.haversine(self.initial_lat, self.initial_lng, lat, lng)
+        dist = haversine(self.initial_lat, self.initial_lng, lat, lng)
         dist_scaled = np.tanh(dist / 50)
 
         # Normalize heading difference
@@ -221,18 +221,10 @@ class Episode():
         print(f"Graph reward: {graph_rwd} \nDirection reward: {direction_rwd} \nCoord Reward: {coord_rwd}")
         return final_reward, done
     
-    def haversine(self, lat1, lon1, lat2, lon2):
-        """ Implementation of the haversine formula to obtain distance from initial to new cords. """
-        R = 6371000
-        dlat = radians(lat2 - lat1)
-        dlon = radians(lon2 - lon1)
-        a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-        return R * 2 * atan2(sqrt(a), sqrt(1 - a))
-    
     def announce(self, key, reward):
         """ Print stop info and action to console at each step. """
         name = self.stop.place_name
         lat = self.stop.og_lat
-        lon = self.stop.og_lng
+        lng = self.stop.og_lng
         print(f"[Step {self.steps}] Action: '{key}' | Reward: {reward:.3f} | Steps Since Found: {self.steps_since_found}")
-        print(f"Stop: {name} ({lat}, {lon})")
+        print(f"Stop: {name} ({lat}, {lng})")

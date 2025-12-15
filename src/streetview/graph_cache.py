@@ -14,20 +14,21 @@ class GraphCache:
     def _tile_key(self, lat, lon):
         return (round(lat / self.tile_size), round(lon / self.tile_size))
 
-    def get_graph(self, lat, lon, radius=800):
+    def get_graph(self, lat, lon, radius=800, force_reload = False):
         """ Returns an OSMnx graph for the tile containing stop pos """
         key = self._tile_key(lat, lon)
         fname = os.path.join(self.cache_dir, f"tile_{key[0]}_{key[1]}.graphml")
 
-        # Check memory cache
-        if key in self.memory_cache:
-            return self.memory_cache[key]
+        if not force_reload: 
+            # Check memory cache
+            if key in self.memory_cache:
+                return self.memory_cache[key]
 
-        # Check disk cache
-        if os.path.exists(fname):
-            G = ox.load_graphml(fname)
-            self.memory_cache[key] = G
-            return G
+            # Check disk cache
+            if os.path.exists(fname):
+                G = ox.load_graphml(fname)
+                self.memory_cache[key] = G
+                return G
 
         # Fetch from overpass 
         print(f"[Graph Cache] Downloading new tile {key}…")

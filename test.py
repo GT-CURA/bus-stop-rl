@@ -13,9 +13,10 @@ from src.stop_detector import StopDetector
 # Semi-seat 33.732169, -84.306032
 # Virginia Highlands 33.796298, -84.350309
 # Spawn in gas station: 33.91372, -84.37955
+# Stuck: 34.06171239086424, -84.29045466424071
 
-DEFAULT_LAT = 33.796298
-DEFAULT_LNG = -84.350309
+DEFAULT_LAT = 34.06171239086424
+DEFAULT_LNG = -84.29045466424071
 START_HEADING = 90
 
 # === Image Navigator Thread ===

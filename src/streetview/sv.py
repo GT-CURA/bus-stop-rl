@@ -6,6 +6,7 @@ from src.streetview.move import Move
 from src.utils.objects import Stop, Pic
 from src.streetview.sv_requests import Reqs
 from src.streetview.graph_cache import GraphCache
+from src.utils.tools import haversine
 
 class StreetView:
     def __init__(self):
@@ -108,6 +109,9 @@ class StreetView:
             if not self.current_pic.pano_id:
                 self.reqs.pull_pano_info(self.current_pic)
     
+    def check_cache(self):
+        dist = haversine(self.current_pic.lat, self.current_pic.lng, )
+
     def goto_start(self):
         """ Go back to the initial position. """
         # Create copy of the original pos
@@ -147,13 +151,13 @@ class StreetView:
         Use pano's coords to determine the necessary camera heading.
         """
         # Convert latitude to radians, get distance between pic & POI lons in radians.  
-        diff_lon = math.radians(stop.og_lng - pic.lng)
+        diff_lng = math.radians(stop.og_lng - pic.lng)
         old_lat = math.radians(pic.lat)
         new_lat = math.radians(stop.og_lat)
 
         # Determine degree bearing
-        x = math.sin(diff_lon) * math.cos(new_lat)
-        y = math.cos(old_lat) * math.sin(new_lat) - math.sin(old_lat) * math.cos(new_lat) * math.cos(diff_lon)
+        x = math.sin(diff_lng) * math.cos(new_lat)
+        y = math.cos(old_lat) * math.sin(new_lat) - math.sin(old_lat) * math.cos(new_lat) * math.cos(diff_lng)
         heading = math.atan2(x, y)
         
         # Convert from radians to degrees, normalize

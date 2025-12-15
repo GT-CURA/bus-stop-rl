@@ -20,12 +20,25 @@ class Move:
         self.reqs = Reqs()
         self.pic_cache = {}
         self.last_perp = None
+        self.edges_gdf = None
+        self.rebuilt = False
 
         # Build graph around starting location (WGS84: lat/lng)
         self.G_osm = self.cache.get_graph(lat, lng)
+        self._clean_edges()
+
+        # CRS transformers
+        self.to_m = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+        self.to_wgs = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
+
+        # Hysteresis: remember last chosen edge index (tiny bias to keep going straight)
+        self.last_edge_idx = None
+
+    def _clean_edges(self):
+        # Get nodes and edges
         nodes_gdf, edges_gdf = ox.graph_to_gdfs(self.G_osm)
 
-        # Project edges to metric CRS (EPSG:3857) so distances are in meters
+        # Project edges to metric so distances are in meters
         edges_gdf = edges_gdf.to_crs(3857)
         self.edges_gdf = edges_gdf.copy()
 
@@ -58,13 +71,6 @@ class Move:
             self.edges_sindex = self.edges_gdf.sindex
         except Exception:
             self.edges_sindex = None
-
-        # CRS transformers
-        self.to_m = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
-        self.to_wgs = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
-
-        # Hysteresis: remember last chosen edge index (tiny bias to keep going straight)
-        self.last_edge_idx = None
 
     # -------------------------------------------------
     # PUBLIC MOVE
@@ -100,10 +106,11 @@ class Move:
         # 3) Find nearby road edges
         candidates = self.get_nearby_edges(pt_m, radius=max(15, step_m * 1.6))
         if candidates.empty:
-            if self.debug:
-                print("No edges nearby")
-            # If nowhere to go, return current pic 
-            return pic
+            # Try rebuilding grpah
+            if not self.rebuilt: 
+                return self._rebuild_graph(pic, backwards)
+            else:
+                return pic
 
         # 4) Choose the best-aligned edge; projection gives us where we are on that edge
         best_idx, best_row, proj, chosen_dir = self.choose_best_edge(
@@ -206,6 +213,18 @@ class Move:
         if self.debug:
             print("[Move] Road scan found no new pano. Staying at current pano.")
         return pic
+
+    def _rebuild_graph(self, pic: Pic, backwards: bool):
+        if self.debug:
+            print("[Move] No nearby edges. Rebuilding graph at current location")
+
+        # Rebuild graph centered on current pano
+        self.G_osm = self.cache.get_graph(pic.lat, pic.lng, force_reload=True)
+        self._clean_edges()
+
+        # Retry move once
+        self.rebuilt = True
+        return self.move(pic, backwards)
 
     def get_nearby_edges(self, pt_m: Point, radius=20):
         """

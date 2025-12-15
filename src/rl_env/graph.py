@@ -1,6 +1,7 @@
 from collections import deque
 import numpy as np
 from src.utils.objects import Hypothesis, Detection, Pic
+from src.utils.tools import localize_coords
 
 class Node:
     def __init__(self, lat, lng):
@@ -180,7 +181,7 @@ class Graph:
 
             # Bearing from current pano to triangulated stop
             if best.triangulated_pos is not None:
-                pano_x, pano_y = self.localize_coords(pic.lat, pic.lng, self.initial_lat, self.initial_lng)
+                pano_x, pano_y = localize_coords(pic.lat, pic.lng, self.initial_lat, self.initial_lng)
                 desired = self.bearing_from(pano_x, pano_y, best.triangulated_pos)
             elif getattr(best, "best_bearing", None) is not None:
                 # Fallback: use stored bearing if no triangulation yet
@@ -211,7 +212,7 @@ class Graph:
 
     def calc_coord_rwd(self, pic: Pic):
         """ Reward agent for stepping towards an estimated coord for bus stop. """
-        pano_x, pano_y = self.localize_coords(pic.lat, pic.lng, self.initial_lat, self.initial_lng)
+        pano_x, pano_y = localize_coords(pic.lat, pic.lng, self.initial_lat, self.initial_lng)
 
         # Only use hypotheses with a triangulated position
         triangulated = [h for h in self.hypotheses if h.triangulated_pos is not None]
@@ -417,12 +418,3 @@ class Graph:
             visit_scaled,
             degree_scaled,
         ], dtype=np.float32)
-    
-    def localize_coords(self, lat, lng, initial_lat, initial_lng):
-        """ Make cords relative to origin (starting position for this stop) """
-        R = 6371000
-        dlat = np.radians(lat - initial_lat)
-        dlon = np.radians(lng - initial_lng)
-        x = R * dlon * np.cos(np.radians(initial_lat))
-        y = R * dlat
-        return x, y
