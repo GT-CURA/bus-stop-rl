@@ -104,7 +104,7 @@ class Move:
         movement_vec = movement_vec / (np.linalg.norm(movement_vec) + EPS)
 
         # 3) Find nearby road edges
-        candidates = self.get_nearby_edges(pt_m, radius=max(15, step_m * 1.6))
+        candidates = self._get_nearby_edges(pt_m, radius=max(15, step_m * 1.6))
         if candidates.empty:
             # Try rebuilding grpah
             if not self.rebuilt: 
@@ -113,7 +113,7 @@ class Move:
                 return pic
 
         # 4) Choose the best-aligned edge; projection gives us where we are on that edge
-        best_idx, best_row, proj, chosen_dir = self.choose_best_edge(
+        best_idx, best_row, proj, chosen_dir = self._choose_best_edge(
             pt_m,
             movement_vec,
             candidates
@@ -142,7 +142,7 @@ class Move:
         # 6) Ask street view at that *geometric* location
         last_pano = getattr(pic, "pano_id", None)
 
-        candidate_pic = self.get_metadata_for_point(lat_geom, lng_geom, pic.heading)
+        candidate_pic = self._get_pt_metadata(lat_geom, lng_geom, pic.heading)
 
         # If we got a pano, we also check the *actual* pano location
         # (Google may snap it a few meters away).
@@ -193,7 +193,7 @@ class Move:
         if self.debug:
             print("[Move] GSV returned same/none/wrong-direction pano. Scanning along road...")
 
-        scanned_pic = self.search_for_valid_pano(
+        scanned_pic = self._find_pano(
             start_edge_idx=best_idx,
             start_edge_row=best_row,
             start_proj=target,
@@ -226,7 +226,7 @@ class Move:
         self.rebuilt = True
         return self.move(pic, backwards)
 
-    def get_nearby_edges(self, pt_m: Point, radius=20):
+    def _get_nearby_edges(self, pt_m: Point, radius=20):
         """
         Return rows of self.edges_gdf whose geom_line is within `radius` meters
         of pt_m (shapely Point in metric CRS).
@@ -245,7 +245,7 @@ class Move:
         df["dist_m"] = df.geom_line.apply(lambda g: g.distance(pt_m))
         return df[df["dist_m"] <= radius].copy()
 
-    def choose_best_edge(self, pt_m, movement_vec, candidates):
+    def _choose_best_edge(self, pt_m, movement_vec, candidates):
         """
         Among nearby edges, choose the one that best aligns with movement_vec.
 
@@ -328,7 +328,7 @@ class Move:
 
         return best_idx, best_row, best_proj, best_dir
 
-    def search_for_valid_pano(
+    def _find_pano(
         self,
         start_edge_idx,
         start_edge_row,
@@ -373,7 +373,7 @@ class Move:
 
             # If still within this segment, probe GSV here
             if 0.0 <= dist_on_seg <= current_seg.length:
-                new_pic = self._probe_gsv_around_point(
+                new_pic = self._search_point(
                     seg=current_seg,
                     dist_on_seg=dist_on_seg,
                     last_pano_id=last_pano_id,
@@ -465,7 +465,7 @@ class Move:
 
         return None
 
-    def _probe_gsv_around_point(
+    def _search_point(
         self,
         seg: LineString,
         dist_on_seg: float,
@@ -481,7 +481,7 @@ class Move:
 
         Direction-aware behavior:
           - For each candidate pano returned by GSV:
-              * Compute vector from original position → pano position.
+              * Compute vector from original position to pano position.
               * Take dot product with movement_vec.
               * Because movement_vec already encodes “forward vs backward”,
                 we simply require dot > 0 to accept the pano
@@ -517,7 +517,7 @@ class Move:
 
             # Call GSV metadata at this candidate metric point
             lng, lat = self.to_wgs.transform(cand.x, cand.y)
-            tmp = self.get_metadata_for_point(lat, lng, original_heading)
+            tmp = self._get_pt_metadata(lat, lng, original_heading)
 
             if tmp and tmp.pano_id == last_pano_id:
                 # Same pano as original → not a move
@@ -604,7 +604,7 @@ class Move:
         return np.array([math.cos(rad), math.sin(rad)], float)
     
 
-    def get_metadata_for_point(self, lat, lon, heading):
+    def _get_pt_metadata(self, lat, lon, heading):
         """
         Unified metadata lookup:
         - Checks cache first.
@@ -659,10 +659,10 @@ class Move:
         movement_vec = self._heading_to_unitvec(pic.heading)
 
         # 3) Find nearby road edges
-        candidates = self.get_nearby_edges(pt_m, radius=15)
+        candidates = self._get_nearby_edges(pt_m, radius=15)
 
         # Basically dry fire choose best edge so it will update last tangent and last perp.
-        self.choose_best_edge(pt_m, movement_vec, candidates)
+        self._choose_best_edge(pt_m, movement_vec, candidates)
 
     def get_road_vec(self):
         """ Used to determine street side of a detection. """
@@ -678,7 +678,7 @@ class Move:
         pt_m = Point(x, y)
 
         # Find nearby edges
-        candidates = self.get_nearby_edges(pt_m, radius=max_search_dist)
+        candidates = self._get_nearby_edges(pt_m, radius=max_search_dist)
         if candidates.empty:
             return None
 
