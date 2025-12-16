@@ -104,7 +104,7 @@ class Move:
         movement_vec = movement_vec / (np.linalg.norm(movement_vec) + EPS)
 
         # 3) Find nearby road edges
-        candidates = self._get_nearby_edges(pt_m, radius=max(15, step_m * 1.6))
+        candidates = self._get_nearby_edges(pt_m, radius=16)
         if candidates.empty:
             # Try rebuilding grpah
             if not self.rebuilt: 
@@ -671,7 +671,7 @@ class Move:
     def snap_pt(self, lat, lng):
         """ Snap onto nearest road if not nearby. """
         max_search_dist=50.0
-        on_road_tol=2.0
+        on_road_tol=15
 
         # Convert to metric
         x, y = self.to_m.transform(lng, lat)
