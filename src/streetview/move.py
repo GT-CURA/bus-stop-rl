@@ -106,11 +106,20 @@ class Move:
         # 3) Find nearby road edges
         candidates = self._get_nearby_edges(pt_m, radius=16)
         if candidates.empty:
-            # Try rebuilding grpah
-            if not self.rebuilt: 
-                return self._rebuild_graph(pic, backwards)
+            # Search again w/ wider radius 
+            wide = self._get_nearby_edges(pt_m, radius=80)
+
+            # Ensure pt is in graph 
+            minx, miny, maxx, maxy = self.edges_gdf.total_bounds
+            inside_graph = (minx <= pt_m.x <= maxx) and (miny <= pt_m.y <= maxy)
+            if wide.empty and not inside_graph:
+                # Try rebuilding grpah
+                if not self.rebuilt: 
+                    return self._rebuild_graph(pic, backwards)
+                else:
+                    return pic
             else:
-                return pic
+                candidates = wide
 
         # 4) Choose the best-aligned edge; projection gives us where we are on that edge
         best_idx, best_row, proj, chosen_dir = self._choose_best_edge(
