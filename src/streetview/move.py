@@ -189,7 +189,7 @@ class Move:
         # 7) If we reach here, either:
         #    - GSV gave same pano_id, or
         #    - No pano at all, or
-        #    - Pano was in the wrong direction (dot <= 0).
+        #    - Pano was in the wrong direction
         if self.debug:
             print("[Move] GSV returned same/none/wrong-direction pano. Scanning along road...")
 
@@ -250,9 +250,9 @@ class Move:
         Among nearby edges, choose the one that best aligns with movement_vec.
 
         For each candidate edge:
-          - Project current point onto the edge → proj distance (meters along edge).
+          - Project current point onto the edge plus proj distance (meters along edge).
           - Compute local tangent at that projection (ahead - behind).
-          - Consider both directions of that tangent (we don't trust OSM's u→v).
+          - Consider both directions of that tangent (we don't trust OSM's u to v).
           - Compute alignment with movement_vec using dot products.
             The direction ( +tangent or -tangent ) giving the higher dot
             is considered the "forward" direction on that edge.
@@ -345,7 +345,7 @@ class Move:
     ):
         """
         Scan along the road network in the intended direction looking for
-        the nearest *different* pano_id that is still consistent with the
+        the nearest different pano_id that is still consistent with the
         movement_vec (which already encodes “forward or backward”).
 
         - Walks along the starting edge in steps of `step_m`.
@@ -519,11 +519,15 @@ class Move:
             lng, lat = self.to_wgs.transform(cand.x, cand.y)
             tmp = self._get_pt_metadata(lat, lng, original_heading)
 
-            if tmp and tmp.pano_id == last_pano_id:
-                # Same pano as original → not a move
+            # Cathc metadata failure
+            if not tmp or not tmp.pano_id:
+                continue 
+            
+            if tmp.pano_id == last_pano_id:
+                # Same pano as original = not a move
                 continue
 
-            # Direction check: compare original → pano vector with movement_vec
+            # Direction check: compare original to pano vector with movement_vec
             cx, cy = self.to_m.transform(tmp.lng, tmp.lat)
             pano_pt = Point(cx, cy)
             vec_to_pano = np.array(
