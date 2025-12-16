@@ -1,7 +1,7 @@
 class S: 
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
-    run_server = False                  # Launch webserver, allowing you to view the program in action
+    run_server = True                   # Launch webserver, allowing you to view the program in action
     request_msgs = False                # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
     wait_time = 0                       # Wait time in seconds between steps
@@ -38,6 +38,7 @@ class S:
     graph_weight = .1                   # Weight for returning to node with best obesrvations
     coord_weight = .05                  # Weight for moving towards estimated Stop coord 
     new_node_bonus = .05                # Points rewarded for visiting a new node (encourage exploration)
+    undo_penalty = .02                # Prevent agent from getting stuck in a loop
 
     """ PPO Properties """
     bbs_kept = 3                        # How many of the highest conf bounding boxes will be kept per frame

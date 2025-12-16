@@ -13,7 +13,6 @@ class Episode():
         self.space_presses = 0
         self.stop = stop
         self.steps_since_found = 0
-        self.prev_move = None
         self.stop_detector = stop_detector
         self.zoom_amt = 0
         self.current_node = None
@@ -26,6 +25,17 @@ class Episode():
 
         # Build current node
         self.current_node = self.graph.add_node(pic, False)
+
+        # Can't think of a better way to do this 
+        self.opposite = {
+            "Backwards": "Forwards",
+            "Forwards":"Backwards",
+            "Counterclockwise":"Clockwise",
+            "Clockwise":"Counterclockwise",
+            "Next":"Next",
+            "Return":"Return"
+        }
+        self.prev_action = None
 
     def get_features(self, img, output, pic):
         # Get features, bb info from stop detector
@@ -71,27 +81,27 @@ class Episode():
         # Concat features
         return np.concatenate([yolo_vec, spatial_vec, graph_vec]).astype(np.float32)
 
-    def update(self, key, img, pic):
+    def update(self, action, img, pic):
         # Update steps if key != enter
-        if key != "Next":
+        if action != "Next":
             self.steps += 1 
 
         # Log space bar presses and zooms
-        if key == "Return":
+        if action == "Return":
             self.space_presses += 1
             self.zoom_amt = 0
 
         # Update zoom level
-        if key == "Zoom":
+        if action == "Zoom":
             self.zoom_amt += 1
-        elif key in ["Forwards", "Backwards"]:
+        elif action in ["Forwards", "Backwards"]:
             self.zoom_amt = 0
 
         # Run stop detector model to get conf for assessment
         output = self.stop_detector.run(img)
 
         # Build/update current node object 
-        add_neighbors = True if key != "Return" else False
+        add_neighbors = True if action != "Return" else False
         self.current_node = self.graph.add_node(pic, add_neighbors)
 
         # Use output to derive initial score
@@ -107,12 +117,12 @@ class Episode():
 
         # See if this episode is finished
         done = False
-        if key == "Next":
+        if action == "Next":
             reward, done = self.check_done(found)
 
         # Determine score if not
         else:
-            reward, done = self.score(conf, key, found, pic)
+            reward, done = self.score(conf, action, found, pic)
 
          # Update "found" status
         if found and not self.found:
@@ -125,14 +135,13 @@ class Episode():
         features = self.get_features(img, output, pic)
 
         # Update log
-        self.log.append(key)
+        self.log.append(action)
 
         # Add to total reward for this episode (for logging)
         self.reward += reward 
 
         # Announce results to console 
-        self.announce(key, reward)
-        self.prev_move = key
+        self.announce(action, reward)
         return features, reward, done
     
     def check_done(self, found):
@@ -164,7 +173,7 @@ class Episode():
         # Tell model to finish this episode
         return reward, True
 
-    def score(self, conf, key, found, pic):
+    def score(self, conf, action, found, pic):
         """ Determines penalties and rewards based on episode data. """
         done = False
         reward = 0.0
@@ -187,7 +196,7 @@ class Episode():
 
         # Prevent spacebar spamming
         rtrn_penalty = 0.0
-        if key == "Return":
+        if action == "Return":
             if self.space_presses > S.free_spacebar_presses:
                 rtrn_penalty = min(S.spacebar_penalty * self.space_presses, .3)
 
@@ -201,6 +210,12 @@ class Episode():
         if self.current_node.visits == 1:
             new_node_bonus = S.new_node_bonus 
 
+        # Try to prevent getting stuck in activity loop
+        undo_penalty = 0.0
+        if self.prev_action is not None and self.opposite[action] == self.prev_action:
+            undo_penalty = S.undo_penalty
+        self.prev_action = action
+        
         # Calulate spatial rewards 
         graph_rwd = self.graph.calc_graph_rwd(pic.pano_id)
         direction_rwd = self.graph.calc_direction_rwd(self.current_node, pic)
@@ -214,7 +229,7 @@ class Episode():
         # Scale rewards
         reward = (raw_reward + graph_rwd + direction_rwd + coord_rwd 
                   + new_node_bonus +  found_bonus
-                  - rtrn_penalty - move_cap_penalty)
+                  - rtrn_penalty - move_cap_penalty - undo_penalty)
         
         # Clip reward to ensure stability 
         final_reward = np.clip(reward, -.5, .5)
