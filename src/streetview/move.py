@@ -72,13 +72,8 @@ class Move:
         except Exception:
             self.edges_sindex = None
 
-    # -------------------------------------------------
-    # PUBLIC MOVE
-    # -------------------------------------------------
     def move(self, pic: Pic, backwards: bool = False):
         """
-        Main entry point.
-
         1. Compute a movement vector in world coordinates based on the camera heading
         2. Choose the road segment (OSM edge) that best aligns with that movement.
         3. Move a fixed distance along that segment (clamped inside the segment).
@@ -110,14 +105,8 @@ class Move:
             wide = self._get_nearby_edges(pt_m, radius=80)
 
             # Ensure pt is in graph 
-            minx, miny, maxx, maxy = self.edges_gdf.total_bounds
-            inside_graph = (minx <= pt_m.x <= maxx) and (miny <= pt_m.y <= maxy)
-            if wide.empty and not inside_graph:
-                # Try rebuilding grpah
-                if not self.rebuilt: 
-                    return self._rebuild_graph(pic, backwards)
-                else:
-                    return pic
+            if wide.empty:
+                return pic
             else:
                 candidates = wide
 
@@ -222,18 +211,6 @@ class Move:
         if self.debug:
             print("[Move] Road scan found no new pano. Staying at current pano.")
         return pic
-
-    def _rebuild_graph(self, pic: Pic, backwards: bool):
-        if self.debug:
-            print("[Move] No nearby edges. Rebuilding graph at current location")
-
-        # Rebuild graph centered on current pano
-        self.G_osm = self.cache.get_graph(pic.lat, pic.lng, force_reload=True)
-        self._clean_edges()
-
-        # Retry move once
-        self.rebuilt = True
-        return self.move(pic, backwards)
 
     def _get_nearby_edges(self, pt_m: Point, radius=20):
         """
