@@ -14,10 +14,10 @@ from src.stop_detector import StopDetector
 # Virginia Highlands 33.796298, -84.350309
 # Spawn in gas station: 33.91372, -84.37955
 # Triggers point snapping: 33.936201,-84.337755
-# 33.780562, -84.353601
+# Stuck: (33.758338, -84.347739)
 
-DEFAULT_LAT = 33.780562
-DEFAULT_LNG = -84.353601
+DEFAULT_LAT = 33.758338
+DEFAULT_LNG = -84.347739
 START_HEADING = 90
 
 # === Image Navigator Thread ===

@@ -5,7 +5,6 @@ from shapely.geometry import box, Point
 from rtree import index
 from pyproj import Transformer
 from settings import S
-from time import time
 
 class GraphCache:
     """ Handles pulling and caching graphs from OSMNX. """
@@ -23,6 +22,7 @@ class GraphCache:
 
         # Spatial index over graph bboxes
         self.sindex = index.Index()
+        self.rid = 0 
 
         # CRS transformer
         self.to_m = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
@@ -38,11 +38,12 @@ class GraphCache:
         pt = Point(px, py)
 
         # Use rtree spatial index to find overlapping BB
-        for gid in self.sindex.intersection((px, py, px, py)):
-            key = f"graph_{gid}"
-            meta = self.metadata[key]
-            if meta["bbox"].contains(pt):
-                return self.graphs[key]
+        for hit in self.sindex.intersection((px, py, px, py), objects=True):
+            gid = hit.object
+            meta = self.metadata[gid]
+
+            if meta["bbox"].covers(pt):
+                return self.graphs[gid]
 
         # Download new graph if none found
         return self._download_graph(lat, lon)
@@ -84,8 +85,16 @@ class GraphCache:
             "bbox": bbox
         }
 
-        self.sindex.insert(len(self.graphs) - 1, (minx, miny, maxx, maxy))
+        # Update RID 
+        rid = self.rid
+        self.rid += 1
 
+        # Insert into rtree
+        self.sindex.insert(
+            rid,
+            (minx, miny, maxx, maxy),
+            obj=gid
+        )
         return G
 
     def _load_from_disk(self):
@@ -115,7 +124,6 @@ class GraphCache:
             bbox = box(minx, miny, maxx, maxy)
 
             # Put graph and metadata in memory
-            idx = len(self.graphs)
             self.graphs[gid] = G
             self.metadata[gid] = {
                 "center": tuple(meta["center"]),
@@ -123,5 +131,13 @@ class GraphCache:
                 "bbox": bbox
             }
 
-            # Insert into rtree
-            self.sindex.insert(idx, (minx, miny, maxx, maxy))
+            # Increment RID 
+            rid = self.rid
+            self.rid += 1
+
+            # Insert into Rtree
+            self.sindex.insert(
+                rid,
+                (minx, miny, maxx, maxy),
+                obj=gid
+            )
