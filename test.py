@@ -16,8 +16,8 @@ from src.stop_detector import StopDetector
 # Triggers point snapping: 33.936201,-84.337755
 # Stuck: (33.758338, -84.347739)
 
-DEFAULT_LAT = 33.758338
-DEFAULT_LNG = -84.347739
+DEFAULT_LAT = 33.796298
+DEFAULT_LNG = -84.350309
 START_HEADING = 90
 
 # === Image Navigator Thread ===
@@ -68,7 +68,7 @@ def streetview_control():
                 print("Exiting control thread.")
                 break
             elif keyboard.is_pressed("="):
-                action = '='
+                action = 'Zoom'
             elif keyboard.is_pressed("space"):
                 action = "space"
                 sv.goto_start()

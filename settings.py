@@ -38,7 +38,8 @@ class S:
     graph_weight = .1                   # Weight for returning to node with best obesrvations
     coord_weight = .05                  # Weight for moving towards estimated Stop coord 
     new_node_bonus = .05                # Points rewarded for visiting a new node (encourage exploration)
-    undo_penalty = .02                # Prevent agent from getting stuck in a loop
+    undo_penalty = .02                  # Prevent agent from oscillating its actions 
+    zoom_cost = .01                     # Slight penalty to prevent zoom spamming
 
     """ PPO Properties """
     bbs_kept = 3                        # How many of the highest conf bounding boxes will be kept per frame
@@ -72,7 +73,7 @@ class S:
     features_dim = 256                  # Vector containing YOLO features
 
     geo_dim_basic = 6                   # Basic spatial info like lat/lng 
-    geo_dim_graph = 8                  # Spatial feature vector (from graph class)
+    geo_dim_graph = 8                   # Spatial feature vector (from graph class)
     geo_dim = geo_dim_basic + geo_dim_graph
 
     frame_dim = features_dim + bb_total_dim + geo_dim

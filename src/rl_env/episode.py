@@ -33,7 +33,8 @@ class Episode():
             "Counterclockwise":"Clockwise",
             "Clockwise":"Counterclockwise",
             "Next":"Next",
-            "Return":"Return"
+            "Return":"Return",
+            "Zoom":None
         }
         self.prev_action = None
 
@@ -113,7 +114,7 @@ class Episode():
         )
 
         # Update guesses
-        self.graph.update_hypotheses(self.current_node, self.steps)
+        self.graph.update_hypotheses(self.current_node, self.steps, action)
 
         # See if this episode is finished
         done = False
@@ -200,6 +201,11 @@ class Episode():
             if self.space_presses > S.free_spacebar_presses:
                 rtrn_penalty = min(S.spacebar_penalty * self.space_presses, .3)
 
+        # Add slight cost for zooming 
+        zoom_cost = 0.0
+        if action == "Zoom":
+            zoom_cost = S.zoom_cost
+
         # Add bonus for finding stop (once)
         found_bonus = 0.0
         if found and not self.found: 
@@ -216,10 +222,14 @@ class Episode():
             undo_penalty = S.undo_penalty
         self.prev_action = action
         
-        # Calulate spatial rewards 
-        graph_rwd = self.graph.calc_graph_rwd(pic.pano_id)
-        direction_rwd = self.graph.calc_direction_rwd(self.current_node, pic)
-        coord_rwd = self.graph.calc_coord_rwd(pic)
+        # Calulate spatial rewards
+        graph_rwd = 0.0
+        direction_rwd = 0.0
+        coord_rwd = 0.0
+        if action != "Zoom":
+            graph_rwd = self.graph.calc_graph_rwd(pic.pano_id)
+            direction_rwd = self.graph.calc_direction_rwd(self.current_node, pic)
+            coord_rwd = self.graph.calc_coord_rwd(pic)
         
         # Apply weights to spatial rewards 
         graph_rwd *= S.graph_weight
@@ -229,7 +239,8 @@ class Episode():
         # Scale rewards
         reward = (raw_reward + graph_rwd + direction_rwd + coord_rwd 
                   + new_node_bonus +  found_bonus
-                  - rtrn_penalty - move_cap_penalty - undo_penalty)
+                  - rtrn_penalty - move_cap_penalty - undo_penalty
+                  - zoom_cost)
         
         # Clip reward to ensure stability 
         final_reward = np.clip(reward, -.5, .5)

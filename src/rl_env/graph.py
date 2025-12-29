@@ -296,7 +296,6 @@ class Graph:
         return float(pts[:, 0].mean()), float(pts[:, 1].mean())
 
     def bearing_from(self, x1, y1, target_xy):
-        """ Computes bearing (0–360°) from camera (x1, y1) to stop at target_xy = (x2, y2). """
         x2, y2 = target_xy
 
         dx = x2 - x1
@@ -313,7 +312,7 @@ class Graph:
         diff = (a - b + 180) % 360 - 180
         return abs(diff)
     
-    def update_hypotheses(self, node: Node, step: int):
+    def update_hypotheses(self, node: Node, step: int, action: str):
         """ Evaluate detections from this frame and update hypotheses. """
 
         # Only use detections from this frame
@@ -355,8 +354,11 @@ class Graph:
             if merged:
                 continue
 
-            # Create new hypothesis
-            new_score = det.primary_conf * (det.box_sz + 1e-6)
+            # Create new hypothesis. Scale by box sz unless zooming
+            if action == "Zoom":
+                new_score = det.primary_conf * .01
+            else:
+                new_score = det.primary_conf * (det.box_sz + .01)
             new_hyp = Hypothesis(
                 observations=[det],
                 triangulated_pos=None,
