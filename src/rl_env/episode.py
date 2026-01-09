@@ -16,6 +16,7 @@ class Episode():
         self.stop_detector = stop_detector
         self.zoom_amt = 0
         self.current_node = None
+        self.zoom_presses = 0 
 
         # Determine geo info
         self.initial_lat, self.initial_lng, self.initial_heading = pic.lat, pic.lng, pic.heading
@@ -90,13 +91,17 @@ class Episode():
         # Log space bar presses and zooms
         if action == "Return":
             self.space_presses += 1
-            self.zoom_amt = 0
 
-        # Update zoom level
+        # Handle zooming 
         if action == "Zoom":
-            self.zoom_amt += 1
-        elif action in ["Forwards", "Backwards"]:
+            self.zoom_presses += 1 
+
+            # Update zoom level 
+            if self.zoom_amt < 2:
+                self.zoom_amt += 1
+        else:
             self.zoom_amt = 0
+            self.zoom_presses = 0
 
         # Run stop detector model to get conf for assessment
         output = self.stop_detector.run(img)
@@ -204,7 +209,7 @@ class Episode():
         # Add slight cost for zooming 
         zoom_cost = 0.0
         if action == "Zoom":
-            zoom_cost = S.zoom_cost
+            zoom_cost = S.zoom_cost * self.zoom_presses**3
 
         # Add bonus for finding stop (once)
         found_bonus = 0.0
@@ -223,14 +228,16 @@ class Episode():
         self.prev_action = action
         
         # Calulate spatial rewards
-        graph_rwd = 0.0
-        direction_rwd = 0.0
-        coord_rwd = 0.0
-        if action != "Zoom":
-            graph_rwd = self.graph.calc_graph_rwd(pic.pano_id)
-            direction_rwd = self.graph.calc_direction_rwd(self.current_node, pic)
-            coord_rwd = self.graph.calc_coord_rwd(pic)
+        graph_rwd = self.graph.calc_graph_rwd(pic.pano_id)
+        direction_rwd = self.graph.calc_direction_rwd(self.current_node, pic)
+        coord_rwd = self.graph.calc_coord_rwd(pic)
         
+        # Only allow spatial penalties if zooming 
+        if action == "Zoom":
+            graph_rwd = min(0, graph_rwd)
+            direction_rwd = min(0, direction_rwd)
+            coord_rwd = min(0, coord_rwd)
+
         # Apply weights to spatial rewards 
         graph_rwd *= S.graph_weight
         direction_rwd *= S.heading_weight
