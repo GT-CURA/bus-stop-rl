@@ -48,8 +48,9 @@ class S:
         1: "Counterclockwise",
         2: "Backwards",
         3: "Clockwise",
-        4: "Next",
-        5: "Return"
+        4: "Zoom",
+        5: "Return",
+        6: "Next"
     }
 
     """ Logging """
