@@ -209,9 +209,10 @@ class Episode():
         # Add slight cost for zooming 
         zoom_cost = 0.0
         if action == "Zoom":
-            zoom_cost = S.zoom_cost * self.zoom_presses**3
-            if self.zoom_presses > 2:
-                raw_reward = 0
+            # zoom_cost = S.zoom_cost * self.zoom_presses**3
+            # if self.zoom_presses > 2:
+            #     raw_reward = 0
+            final_reward = -.5
 
         zoom_cost = max(0, -.5)
 

@@ -140,11 +140,12 @@ class StreetView:
 
     def _zoom(self):
         # See if we're at max zoom level
-        if self.current_pic.zoom_lvl == 2:
-            return
+        # if self.current_pic.zoom_lvl == 2:
+        #     return
         
-        # Otherwise, increase zoom level 
-        self.current_pic.zoom_lvl += 1
+        # # Otherwise, increase zoom level 
+        # self.current_pic.zoom_lvl += 1
+        return
         
     def _estimate_heading(self, pic, stop: Stop):
         """
