@@ -67,7 +67,7 @@ def train(save_path: str, stops_path: str, weights_path = None):
     agent.set_logger(logger)
 
     # Begin learning
-    agent.learn(total_timesteps=409600, callback=checkpoint_callback)
+    agent.learn(total_timesteps=1638400, callback=checkpoint_callback)
     
     # Save weights, close gym
     agent.save(save_path)
@@ -107,5 +107,5 @@ if __name__ == "__main__":
         start_server(port=5000)
         
     # Run training/inference loop here!
-    train("weights/PPO", "assets/all_val.csv")
+    train("weights/PPO", "assets/all_val.csv", "112640")
     # infer("assets/study_area.csv", "573440")

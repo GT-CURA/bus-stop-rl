@@ -209,7 +209,8 @@ class Episode():
         # Add slight cost for zooming 
         zoom_cost = 0.0
         if action == "Zoom":
-            zoom_cost = S.zoom_cost * self.zoom_presses**3
+            zoom_cost = S.zoom_cost * self.zoom_presses**2
+        zoom_cost = max(0, -.5)
 
         # Add bonus for finding stop (once)
         found_bonus = 0.0
