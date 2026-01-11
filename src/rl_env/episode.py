@@ -17,6 +17,7 @@ class Episode():
         self.zoom_amt = 0
         self.current_node = None
         self.zoom_presses = 0 
+        self.consec_acts = 0
 
         # Determine geo info
         self.initial_lat, self.initial_lng, self.initial_heading = pic.lat, pic.lng, pic.heading
@@ -229,7 +230,12 @@ class Episode():
         # Try to prevent getting stuck in activity loop
         undo_penalty = 0.0
         if self.prev_action is not None and self.opposite[action] == self.prev_action:
-            undo_penalty = S.undo_penalty
+            undo_penalty = S.undo_penalty * (self.consec_acts ** 2)
+            undo_penalty = min(undo_penalty, -.5)
+            self.consec_acts += 1 
+        else:
+            self.consec_acts = 0
+
         self.prev_action = action
         
         # Calulate spatial rewards
@@ -256,6 +262,10 @@ class Episode():
         
         # Clip reward to ensure stability 
         final_reward = np.clip(reward, -.5, .5)
+
+        # TODO: Remove
+        if action == "Zoom":
+            final_reward = -.5
         print(f"Graph reward: {graph_rwd} \nDirection reward: {direction_rwd} \nCoord Reward: {coord_rwd}")
         return final_reward, done
     
