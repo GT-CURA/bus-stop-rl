@@ -230,9 +230,9 @@ class Episode():
         # Try to prevent getting stuck in activity loop
         undo_penalty = 0.0
         if self.prev_action is not None and self.opposite[action] == self.prev_action:
-            undo_penalty = S.undo_penalty * (self.consec_acts ** 2)
-            undo_penalty = min(undo_penalty, -.5)
             self.consec_acts += 1 
+            undo_penalty = S.undo_penalty * (self.consec_acts ** 2)
+            undo_penalty = min(undo_penalty, .5)
         else:
             self.consec_acts = 0
 
