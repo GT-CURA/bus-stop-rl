@@ -1,7 +1,7 @@
 class S: 
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
-    run_server = False                  # Launch webserver, allowing you to view the program in action
+    run_server = True                   # Launch webserver, allowing you to view the program in action
     request_msgs = False                # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
     wait_time = 0                       # Wait time in seconds between steps
@@ -40,6 +40,7 @@ class S:
     new_node_bonus = .05                # Points rewarded for visiting a new node (encourage exploration)
     undo_penalty = .02                  # Prevent agent from oscillating its actions 
     linger_penalty = .02                # Punish the model for staying at the same pano for too long (not moving)
+    panning_penalty = .02
     zoom_cost = .01                     # Slight penalty to prevent zoom spamming
 
     """ PPO Properties """

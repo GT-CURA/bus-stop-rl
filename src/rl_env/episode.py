@@ -18,6 +18,7 @@ class Episode():
         self.current_node = None
         self.zoom_presses = 0 
         self.consec_acts = 0
+        self.consec_pan = 0
 
         # Determine geo info
         self.initial_lat, self.initial_lng, self.initial_heading = pic.lat, pic.lng, pic.heading
@@ -238,10 +239,14 @@ class Episode():
 
         self.prev_action = action
         
-        # Prevent panning spam 
-        linger_penalty = 0.0
-        if self.current_node.consec_visits > 3:
-            linger_penalty = S.linger_penalty * (self.current_node.consec_visits ** 2)
+        # Prevent panning spam
+        pan_penalty = 0.0
+        if action in ["Clockwise", "Counterclockwise"]:
+            self.consec_pan += 1
+        else: 
+            self.consec_pan = 0 
+        if self.consec_pan > 5:
+            pan_penalty = S.panning_penalty * ((self.consec_pan - 5) ** 2)
 
         # Calulate spatial rewards
         graph_rwd = self.graph.calc_graph_rwd(pic.pano_id)
@@ -263,7 +268,7 @@ class Episode():
         reward = (raw_reward + graph_rwd + direction_rwd + coord_rwd 
                   + new_node_bonus +  found_bonus
                   - rtrn_penalty - move_cap_penalty - undo_penalty
-                  - zoom_cost - linger_penalty)
+                  - pan_penalty - zoom_cost)
         
         # Clip reward to ensure stability 
         final_reward = np.clip(reward, -.5, .5)
@@ -271,7 +276,7 @@ class Episode():
         # TODO: Remove
         if action == "Zoom":
             final_reward = -.5
-        print(f"Graph reward: {graph_rwd} \nDirection reward: {direction_rwd} \nCoord Reward: {coord_rwd}")
+        print(f"Graph reward: {graph_rwd} | Direction reward: {direction_rwd} | Coord Reward: {coord_rwd}")
         return final_reward, done
     
     def announce(self, key, reward):
