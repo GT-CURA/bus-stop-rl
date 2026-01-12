@@ -25,7 +25,7 @@ class S:
     free_steps_after_found = 5          # Start  punishing model after this many steps since finding stop
     max_steps_after_found = 10          # The number of steps after "found" that the model is allowed before forcibly moving on
     stack_sz = 80                       # Number of frames stacked
-    min_conf = .8                       # The minimum confidence value required to be considered "found"
+    min_conf = .75                      # The minimum confidence value required to be considered "found"
 
     """ Incentives / Penalties """
     after_found_punishment = .05        # How much to punish model per step after ^
