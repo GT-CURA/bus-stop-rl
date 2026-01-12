@@ -22,6 +22,7 @@ class Node:
 
         # Visit counter
         self.visits = 0
+        self.consec_visits = 0
 
 class Graph:
 
@@ -58,6 +59,12 @@ class Graph:
             if self.prev_node_id is not None and self.prev_node_id != pic.pano_id:
                 node.neighbors.add(self.prev_node_id)
                 self.graph[self.prev_node_id].neighbors.add(pic.pano_id)
+
+        # Log consecutive visits 
+        if self.prev_node_id == pic.pano_id:
+            node.consec_visits += 1
+        else:
+            node.consec_visits = 0
 
         self.prev_node_id = pic.pano_id
         return node

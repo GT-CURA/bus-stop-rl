@@ -108,6 +108,10 @@ class Reqs:
         if b'ZERO_RESULTS' in response.content:
             return False
         
+        if pano_location["lng"] is None:
+            print(response.content)
+            return False 
+        
         # Fetch the coordinates from the json response and store them in the POI
         pano_location = response.json().get("location")
         pic.lng = pano_location["lng"]

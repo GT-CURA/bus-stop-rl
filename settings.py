@@ -39,6 +39,7 @@ class S:
     coord_weight = .05                  # Weight for moving towards estimated Stop coord 
     new_node_bonus = .05                # Points rewarded for visiting a new node (encourage exploration)
     undo_penalty = .02                  # Prevent agent from oscillating its actions 
+    linger_penalty = .02                # Punish the model for staying at the same pano for too long (not moving)
     zoom_cost = .01                     # Slight penalty to prevent zoom spamming
 
     """ PPO Properties """

@@ -227,7 +227,7 @@ class Episode():
         if self.current_node.visits == 1:
             new_node_bonus = S.new_node_bonus 
 
-        # Try to prevent getting stuck in activity loop
+        # Prevent getting stuck in action loop
         undo_penalty = 0.0
         if self.prev_action is not None and self.opposite[action] == self.prev_action:
             self.consec_acts += 1 
@@ -238,6 +238,11 @@ class Episode():
 
         self.prev_action = action
         
+        # Prevent panning spam 
+        linger_penalty = 0.0
+        if self.current_node.consec_visits > 3:
+            linger_penalty = S.linger_penalty * (self.current_node.consec_visits ** 2)
+
         # Calulate spatial rewards
         graph_rwd = self.graph.calc_graph_rwd(pic.pano_id)
         direction_rwd = self.graph.calc_direction_rwd(self.current_node, pic)
@@ -258,7 +263,7 @@ class Episode():
         reward = (raw_reward + graph_rwd + direction_rwd + coord_rwd 
                   + new_node_bonus +  found_bonus
                   - rtrn_penalty - move_cap_penalty - undo_penalty
-                  - zoom_cost)
+                  - zoom_cost - linger_penalty)
         
         # Clip reward to ensure stability 
         final_reward = np.clip(reward, -.5, .5)
