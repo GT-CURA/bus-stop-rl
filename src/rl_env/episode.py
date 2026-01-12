@@ -233,21 +233,12 @@ class Episode():
         if self.prev_action is not None and self.opposite[action] == self.prev_action:
             self.consec_acts += 1 
             undo_penalty = S.undo_penalty * (self.consec_acts ** 2)
-            undo_penalty = min(undo_penalty, .5)
+            undo_penalty = min(undo_penalty, .3)
         else:
             self.consec_acts = 0
 
         self.prev_action = action
         
-        # Prevent panning spam
-        pan_penalty = 0.0
-        if action in ["Clockwise", "Counterclockwise"]:
-            self.consec_pan += 1
-        else: 
-            self.consec_pan = 0 
-        if self.consec_pan > 5:
-            pan_penalty = S.panning_penalty * ((self.consec_pan - 5) ** 2)
-
         # Calulate spatial rewards
         graph_rwd = self.graph.calc_graph_rwd(pic.pano_id)
         direction_rwd = self.graph.calc_direction_rwd(self.current_node, pic)
@@ -268,7 +259,7 @@ class Episode():
         reward = (raw_reward + graph_rwd + direction_rwd + coord_rwd 
                   + new_node_bonus +  found_bonus
                   - rtrn_penalty - move_cap_penalty - undo_penalty
-                  - pan_penalty - zoom_cost)
+                  - zoom_cost)
         
         # Clip reward to ensure stability 
         final_reward = np.clip(reward, -.5, .5)

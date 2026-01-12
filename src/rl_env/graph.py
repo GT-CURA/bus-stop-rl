@@ -19,9 +19,21 @@ class Node:
 
         # Detections (class in objects module) 
         self.detections = []
+        self.det_count = {}
 
         # Visit counter
         self.visits = 0
+    
+    def add_det(self, det: Detection):
+        # Keep track of how many times this det has been found 
+        if det.key in self.det_count:
+            self.det_count[det.key] += 1
+        else:
+            self.det_count[det.key] = 1
+        
+        # Add det, return count
+        self.detections.append(det)
+        return self.det_count[det.key]
 
 class Graph:
 

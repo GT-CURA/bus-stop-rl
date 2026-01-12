@@ -70,16 +70,23 @@ class StopDetector:
                     lng = pic.lng, 
                     local_x=local_x,
                     local_y=local_y,
-                    side=None
+                    side=None,
+                    key=f"{int(round(bearing / 5) * 5)}_{label}"
                 )
 
                 # Calc side of road 
                 self.sv.calc_street_side(det)
-                node.detections.append(det)
+                diminish_factor = node.add_det(det)
+
+                # Diminish score based on how many times its been found 
+                adj_conf = conf
+                if diminish_factor > 2:
+                    adj_conf -= .03 * (diminish_factor - 2 ** 2)
+                    adj_conf = max(0, adj_conf)
 
                 # If highest conf primray, set as primary score and get bearing
                 if conf > primary_score:
-                    primary_score = conf
+                    primary_score = adj_conf
                     best_bearing = bearing
 
                 # Mark as found if meets min conf 
