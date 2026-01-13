@@ -263,10 +263,8 @@ class Episode():
         
         # Clip reward to ensure stability 
         final_reward = np.clip(reward, -.5, .5)
-
-        # TODO: Remove
-        if action == "Zoom":
-            final_reward = -.5
+        
+        # Announce 
         print(f"Graph reward: {graph_rwd} | Direction reward: {direction_rwd} | Coord Reward: {coord_rwd}")
         return final_reward, done
     

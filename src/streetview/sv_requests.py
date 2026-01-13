@@ -10,7 +10,7 @@ from src.utils.objects import Pic
 
 class Reqs:
     def __init__(self):
-        self.max_uses_per_key = 9000
+        self.max_uses_per_key = 9500
         self.keys = []
         self.current_key_index = 0
         self.counter_path = Path(f"{S.log_dir}/api_calls.json")
@@ -110,7 +110,7 @@ class Reqs:
         
         # Fetch the coordinates from the json response and store them in the POI
         pano_location = response.json().get("location")
-        if pano_location["lng"] is None:
+        if pano_location is None:
             print(response.content)
             return False 
         pic.lng = pano_location["lng"]

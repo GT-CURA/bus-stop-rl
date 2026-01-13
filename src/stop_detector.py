@@ -81,7 +81,7 @@ class StopDetector:
                 # Diminish score based on how many times its been found 
                 adj_conf = conf
                 if diminish_factor > 2:
-                    adj_conf -= .03 * (diminish_factor - 2 ** 2)
+                    adj_conf -= .03 * (diminish_factor - 1 ** 2)
                     adj_conf = max(0, adj_conf)
 
                 # If highest conf primray, set as primary score and get bearing
