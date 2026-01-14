@@ -208,14 +208,13 @@ class Episode():
             if self.space_presses > S.free_spacebar_presses:
                 rtrn_penalty = min(S.spacebar_penalty * self.space_presses, .3)
 
-        # Add slight cost for zooming 
+        # Add exponential cost for zooming 
         zoom_cost = 0.0
         if action == "Zoom":
             zoom_cost = S.zoom_cost * self.zoom_presses**3
             if self.zoom_presses > 2:
                 raw_reward = 0
-
-        zoom_cost = max(0, -.5)
+        zoom_cost = max(0, .5)
 
         # Add bonus for finding stop (once)
         found_bonus = 0.0
