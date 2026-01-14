@@ -10,7 +10,7 @@ from src.utils.objects import Pic
 
 class Reqs:
     def __init__(self):
-        self.max_uses_per_key = 9500
+        self.max_uses_per_key = 7000
         self.keys = []
         self.current_key_index = 0
         self.counter_path = Path(f"{S.log_dir}/api_calls.json")
@@ -33,6 +33,9 @@ class Reqs:
 
         url = f"https://streetviewpixels-pa.googleapis.com/v1/thumbnail?cb_client=maps_sv.tactile&w=640&h=640&panoid={pic.pano_id}&yaw={pic.heading}&pitch=0.00"
         response = self._request(url, context="Pulling Thumbnail")
+        if response is None:
+            print(response)
+
         # If API returns error image or no content
         if response.status_code == 400:
             print("[Requests] Got 400 error, falling back to old_pull_img")
