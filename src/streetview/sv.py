@@ -79,11 +79,13 @@ class StreetView:
         if action == 'Counterclockwise':
             self.current_pic.heading -= S.rotate_amt
             self.current_pic.heading = self.current_pic.heading % 360
+            self.current_pic.zoom_lvl = 0
             
         # Rotate clockwise
         elif action == 'Clockwise':
             self.current_pic.heading += S.rotate_amt
             self.current_pic.heading = self.current_pic.heading % 360
+            self.current_pic.zoom_lvl = 0
 
         # Handle movement with Move class
         elif action == 'Forwards':

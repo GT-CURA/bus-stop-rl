@@ -214,7 +214,7 @@ class Episode():
             zoom_cost = S.zoom_cost * self.zoom_presses**3
             if self.zoom_presses > 2:
                 raw_reward = 0
-        zoom_cost = max(0, .5)
+        zoom_cost = min(zoom_cost, .5)
 
         # Add bonus for finding stop (once)
         found_bonus = 0.0
