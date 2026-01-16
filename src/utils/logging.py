@@ -141,4 +141,4 @@ class LogManager:
 
     @staticmethod
     def _fieldnames():
-        return ["stop_name", "latitude", "longitude", "date"] + AMENITIES
+        return ["name", "latitude", "longitude", "date"] + AMENITIES

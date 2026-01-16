@@ -68,7 +68,8 @@ class StopDetector:
                 local_x=local_x,
                 local_y=local_y,
                 side=None,
-                key=f"{int(round(bearing / 5) * 5)}_{label}"
+                date=pic.date,
+                key=f"{int(round(bearing / 5) * 5)}_{label}",
             )
 
             # Calc side of road 

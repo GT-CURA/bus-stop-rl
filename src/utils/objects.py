@@ -57,6 +57,7 @@ class Detection:
     local_y: float
     side: str
     key: str
+    date: str
 
 @dataclass
 class Hypothesis: 
