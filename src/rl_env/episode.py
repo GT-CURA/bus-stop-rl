@@ -6,7 +6,6 @@ from src.utils.tools import haversine
 
 class Episode():
     def __init__(self, stop, stop_detector: StopDetector, pic):
-        self.log = []
         self.reward = 0.0
         self.steps = 0
         self.found = False
@@ -142,9 +141,6 @@ class Episode():
         # Extract features from observation
         features = self.get_features(img, output, pic)
 
-        # Update log
-        self.log.append(action)
-
         # Add to total reward for this episode (for logging)
         self.reward += reward 
 
@@ -177,7 +173,6 @@ class Episode():
         #         results.save()
         #     else:
         #         (filename, save_img)
-        
         # Tell model to finish this episode
         return reward, True
 

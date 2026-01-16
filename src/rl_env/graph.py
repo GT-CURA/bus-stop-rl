@@ -25,15 +25,18 @@ class Node:
         self.visits = 0
     
     def add_det(self, det: Detection):
-        # Keep track of how many times this det has been found 
-        if det.key in self.det_count:
-            self.det_count[det.key] += 1
-        else:
-            self.det_count[det.key] = 1
-        
-        # Add det, return count
+        # Add detection to node
         self.detections.append(det)
-        return self.det_count[det.key]
+        
+        if det.label in ["Shelter", "Sign"]:
+            # Keep track of how many times this det has been found 
+            if det.key in self.det_count:
+                self.det_count[det.key] += 1
+            else:
+                self.det_count[det.key] = 1
+            return self.det_count[det.key]
+        else:
+            return 0
 
 class Graph:
 

@@ -45,38 +45,38 @@ class StopDetector:
             # Update node's scorecard 
             if node.scores[label] < conf:
                 node.scores[label] = conf
-                
+            
+            # Calc bearing using bounding box (FOV is 90)
+            box_center = float(box.xywhn[0][0])
+            delta_deg = (box_center -.5) * 90
+            bearing = (pic.heading + delta_deg) % 360
+
+            # Localize coords 
+            local_x, local_y = localize_coords(pic.lat, pic.lng, initial_lat, initial_lng)
+
+            # Build detection, add to node
+            det = Detection(
+                bearing=bearing,
+                primary_conf=conf,
+                box_sz=float(box.xywhn[0][2] * box.xywhn[0][3]),
+                cx_norm=box_center,
+                label=label,          
+                timestamp=step,
+                pano_id=pic.pano_id,
+                lat = pic.lat,
+                lng = pic.lng, 
+                local_x=local_x,
+                local_y=local_y,
+                side=None,
+                key=f"{int(round(bearing / 5) * 5)}_{label}"
+            )
+
+            # Calc side of road 
+            self.sv.calc_street_side(det)
+            diminish_factor = node.add_det(det)
+
             # Take best evidence of a sign/shelter
             if label in {"shelter", "sign"}:
-
-                # Calc bearing using bounding box (FOV is 90)
-                box_center = float(box.xywhn[0][0])
-                delta_deg = (box_center -.5) * 90
-                bearing = (pic.heading + delta_deg) % 360
-
-                # Localize coords 
-                local_x, local_y = localize_coords(pic.lat, pic.lng, initial_lat, initial_lng)
-
-                # Build detection, add to node
-                det = Detection(
-                    bearing=bearing,
-                    primary_conf=conf,
-                    box_sz=float(box.xywhn[0][2] * box.xywhn[0][3]),
-                    cx_norm=box_center,
-                    label=label,          
-                    timestamp=step,
-                    pano_id=pic.pano_id,
-                    lat = pic.lat,
-                    lng = pic.lng, 
-                    local_x=local_x,
-                    local_y=local_y,
-                    side=None,
-                    key=f"{int(round(bearing / 5) * 5)}_{label}"
-                )
-
-                # Calc side of road 
-                self.sv.calc_street_side(det)
-                diminish_factor = node.add_det(det)
 
                 # Diminish score based on how many times its been found 
                 adj_conf = conf

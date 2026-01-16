@@ -82,4 +82,7 @@ class StreetViewEnv(gym.Env):
         # Udate episode, let it score etc.
         obs, reward, done = self.episode.update(key, img, self.sv.current_pic)
         
+        # Write to log
+        if done:
+            self.log_manager.add(self.episode)
         return obs, reward, done, False, {"raw_reward": reward}
