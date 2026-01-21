@@ -22,7 +22,7 @@ class StopDetector:
         if S.run_server: output.save('src/utils/server/static/frame.jpg')
         return output
 
-    def score_output(self, output, node: Node, pic: Pic, step):
+    def score_output(self, output, node: Node, pic: Pic, step, found_prev: bool):
         # No boxes
         if len(output.boxes) == 0: 
             return 0.0, False
@@ -78,30 +78,39 @@ class StopDetector:
 
             # Take best evidence of a sign/shelter
             if label in {"shelter", "sign"}:
+                # Mark as found if meets min conf 
+                if conf > S.min_conf:
+                    found = True
+                
+                # Allow a bit of a buffer before diminishing if not found 
+                buffer = 0 if found_prev or found else 2
 
                 # Diminish score based on how many times its been found 
                 adj_conf = conf
-                if diminish_factor > 2:
-                    adj_conf -= .03 * (diminish_factor - 1 ** 2)
+                if diminish_factor > buffer:
+                    adj_conf -= .03 * (diminish_factor - buffer ** 2)
                     adj_conf = max(0, adj_conf)
 
                 # If highest conf primray, set as primary score and get bearing
                 if conf > primary_score:
-                    primary_score = adj_conf
+
+                    # Weigh more heavily if not found 
+                    primary_score = adj_conf * S.primary_found if found_prev else adj_conf
                     best_bearing = bearing
 
-                # Mark as found if meets min conf 
-                if conf > S.min_conf:
-                    found = True
-
             else:
-                secondary_score += conf
-
-        # Normalize secondary score if needed
-        secondary_score = min(secondary_score, 1.0 - primary_score)
-
-        # Allow small boost from secondary amenities
-        total_score = primary_score + S.secondary_boost * secondary_score
+                # Weigh secondary scores more heavily if already found
+                if found_prev:
+                    secondary_score += S.secondary_prefound * conf
+                else:
+                    secondary_score += conf
+        
+        # Before found, most of score is from primary amenities. After, mostly secondary
+        if found or found_prev:
+            primary_score = min(primary_score, 1.0 - secondary_score)
+        else:
+            secondary_score = min(secondary_score, 1.0 - primary_score)
+        total_score = primary_score + secondary_score
 
         # Update node's highest conf
         if primary_score > node.best_conf:

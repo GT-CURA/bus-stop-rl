@@ -1,7 +1,7 @@
 class S: 
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
-    run_server = False                  # Launch webserver, allowing you to view the program in action
+    run_server = True                   # Launch webserver, allowing you to view the program in action
     request_msgs = False                # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
     wait_time = 0                       # Wait time in seconds between steps
@@ -64,7 +64,9 @@ class S:
     """ YOLO Properties"""
     num_classes = 4                     # Number of classes in YOLO model
     yolo_path = "assets/YOLO.pt"        # Path to YOLO model 
-    secondary_boost = .25               # How much of the secondary amenities' scores are kept 
+    secondary_prefound = .25            # How much of the secondary amenities' scores are kept before finding
+    primary_found = .5                  # How much of primary amenities' scores are kept after finding
+
 
     """ API Settings """
     rotate_amt = 45                     # Amount camera angle is changed by on horizontal movement

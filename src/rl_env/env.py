@@ -51,7 +51,8 @@ class StreetViewEnv(gym.Env):
             yolo_output, 
             self.episode.current_node,
             self.sv.current_pic,
-            0
+            0, 
+            False
         )
 
         # Reset episode-specific vars

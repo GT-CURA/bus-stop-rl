@@ -108,4 +108,4 @@ if __name__ == "__main__":
         
     # Run training/inference loop here!
     # train("weights/PPO", "assets/all_val.csv", "weights/1009664")
-    infer("assets/study_area.csv", "weights/latest")
+    infer("assets/missed.csv", "weights/latest")

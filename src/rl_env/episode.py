@@ -116,7 +116,8 @@ class Episode():
             output, 
             self.current_node, 
             pic, 
-            self.steps
+            self.steps,
+            self.found
         )
 
         # Update guesses
