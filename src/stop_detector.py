@@ -101,9 +101,9 @@ class StopDetector:
             else:
                 # Weigh secondary scores more heavily if already found
                 if found_prev:
-                    secondary_score += S.secondary_prefound * conf
-                else:
                     secondary_score += conf
+                else:
+                    secondary_score += S.secondary_prefound * conf
         
         # Before found, most of score is from primary amenities. After, mostly secondary
         secondary_score = min(secondary_score, 1.0)
@@ -117,7 +117,7 @@ class StopDetector:
         if primary_score > node.best_conf:
             node.best_conf = primary_score
             node.best_bearing = best_bearing
-
+        print(f"Raw primary: {primary_score} | Raw secondary: {secondary_score} | Raw Total: {total_score}")
         return min(total_score, 1.0), found
     
     def extract_features(self, img, output):
