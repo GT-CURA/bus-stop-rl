@@ -28,7 +28,7 @@ class Node:
         # Add detection to node
         self.detections.append(det)
         
-        if det.label in ["Shelter", "Sign"]:
+        if det.label in ["shelter", "sign"]:
             # Keep track of how many times this det has been found 
             if det.key in self.det_count:
                 self.det_count[det.key] += 1

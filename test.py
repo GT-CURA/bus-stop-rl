@@ -15,10 +15,10 @@ from src.stop_detector import StopDetector
 # Spawn in gas station: 33.91372, -84.37955
 # Triggers point snapping: 33.936201,-84.337755
 # Stuck: (33.758338, -84.347739)
-# Shelter: 33.726410000000044, -84.39215599999994
+# Shelter: 33.726246, -84.392113
 
-DEFAULT_LAT = 33.726410000000044
-DEFAULT_LNG = -84.39215599999994
+DEFAULT_LAT = 33.726246
+DEFAULT_LNG = -84.392113
 START_HEADING = 90
 
 # === Image Navigator Thread ===

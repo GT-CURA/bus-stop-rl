@@ -106,6 +106,7 @@ class StopDetector:
                     secondary_score += conf
         
         # Before found, most of score is from primary amenities. After, mostly secondary
+        secondary_score = min(secondary_score, 1.0)
         if found or found_prev:
             primary_score = min(primary_score, 1.0 - secondary_score)
         else:
