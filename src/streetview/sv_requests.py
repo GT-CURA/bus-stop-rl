@@ -7,6 +7,10 @@ from random import uniform
 import requests
 from settings import S
 from src.utils.objects import Pic
+import cv2 
+import os 
+from pathlib import Path
+import numpy as np
 
 class Reqs:
     def __init__(self):
@@ -26,9 +30,58 @@ class Reqs:
         self._load_usage_counts()
         self._rotate_key()
 
+        # Setup pic caching
+        if S.pic_caching:
+            os.makedirs("pic_cache", exist_ok=True)
+            self.caching = True
 
+    def pull_image(self, pic: Pic, zoom = False):
+        cached_pic = None
+        
+        # Check cache
+        if self.caching:
+            file_name = f"pic_cache/{pic.get_key()}.png"
+            pic_path = Path(file_name)
+
+            if pic_path.exists():
+                cached_pic = cv2.imread(file_name)
+                content = cached_pic
+
+        # If no hit, pull from GSV 
+        if cached_pic is None:
+            content = self.pull_img(pic) if zoom else self.new_pull_img(pic)
+            
+            # Decode image 
+            nparr = np.frombuffer(content, np.uint8)
+            try:
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            except Exception as e:
+                print(f"Error decoding image: {e}")
+
+            # Save to cache if caching
+            if self.caching:
+                cv2.imwrite(filename=file_name, img=img)
+
+        return content
     
-    def old_pull_img(self, pic: Pic):
+    def new_pull_img(self, pic: Pic):
+        # Get pano ID if we don't have it
+        if not pic.pano_id:
+            self.pull_pano_info(pic)
+
+        url = f"https://streetviewpixels-pa.googleapis.com/v1/thumbnail?cb_client=maps_sv.tactile&w=640&h=640&panoid={pic.pano_id}&yaw={pic.heading}&pitch=0.00"
+        response = self._request(url, context="Pulling Thumbnail")
+        if response is None:
+            print(response)
+
+        # If API returns error image or no content
+        if response.status_code == 400:
+            print("[Requests] Got 400 error, falling back to old_pull_img")
+            return self.pull_img(pic)
+        
+        return response.content
+    
+    def pull_img(self, pic: Pic):
         # Increment usage count for current key
         self.usage_counts[self.key] += 1
         self._save_usage_counts()

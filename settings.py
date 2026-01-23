@@ -8,6 +8,7 @@ class S:
     img_height = 640                    # Height of images requested from streetview
     img_width = 640                     # Width of images requested from streetview
     cache_dir = "graph_cache"           # Directory to save OSMNX graph cache in 
+    pic_caching = True                  # Save images for later reuse
     
     """ Stop Loader Properties """
     shuffle_stops = False               # Randomly shuffle stops
@@ -17,7 +18,8 @@ class S:
     loop_stops = True                   # Loop back to the beginning if we run out of stops
 
     """ RL Properties """
-    img_size = (640,640)                # Size that images are compressed to before plugged into YOLO 
+    img_size = (640,640)                # Size of images pulled from GSV 
+    out_size = 64                       # Size that images are compressed to before plugged into agent
     max_steps = 80                      # Max number of steps before forcibly moved to next stop
     min_steps = 75                      # How many steps the model must take before giving up on a stop            
     dampen_scalor = .6                  # How much each score is dampened by
@@ -80,7 +82,8 @@ class S:
     geo_dim_basic = 6                   # Basic spatial info like lat/lng 
     geo_dim_graph = 8                   # Spatial feature vector (from graph class)
     geo_dim = geo_dim_basic + geo_dim_graph
+    img_dim = out_size * out_size
+    frame_dim = features_dim + bb_total_dim + geo_dim + img_dim
 
-    frame_dim = features_dim + bb_total_dim + geo_dim
     from datetime import datetime
     log_dir = f"{save_folder}/{datetime.now().strftime('%m-%d_%H-%M-%S')}/"

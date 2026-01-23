@@ -64,14 +64,7 @@ class StreetView:
 
 
     def get_img(self):
-        """ Load bytes from streetview into CV2 image. """
-        # Decode bytes into image, return it
-        nparr = np.frombuffer(self.current_img, np.uint8)
-        try:
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        except Exception as e:
-            print(f"Error decoding image: {e}")
-        return img
+        return self.current_img
 
     def do_action(self, action, pull_img = True):
         """ Immitate movement in streetview. """
@@ -100,12 +93,11 @@ class StreetView:
 
         # Pull image if requested
         if pull_img:
+            
             # Pull new pic
-            if self.current_pic.zoom_lvl > 0:
-                self.current_img = self.reqs.old_pull_img(self.current_pic)
-            else:
-                self.current_img = self.reqs.pull_image(self.current_pic)
-        
+            zoom = True if self.current_pic.zoom_lvl > 0 else False
+            self.reqs.pull_image(self.current_pic, zoom)
+
         # Otherwise, just do metadata call
         else:
             if not self.current_pic.pano_id:

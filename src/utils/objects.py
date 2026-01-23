@@ -14,6 +14,9 @@ class Pic:
     def get_coords(self):
         return f"{self.lat},{self.lng}"
     
+    def get_key(self):
+        return f"{self.lat}_{self.lng}_{self.heading}_{self.zoom_lvl}"
+    
 @dataclass
 class Viewpoint:
     lon: float

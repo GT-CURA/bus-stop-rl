@@ -3,6 +3,7 @@ import numpy as np
 from settings import S
 from src.rl_env.graph import Graph
 from src.utils.tools import haversine
+import cv2 
 
 class Episode():
     def __init__(self, stop, stop_detector: StopDetector, pic):
@@ -78,11 +79,17 @@ class Episode():
             remaining_steps
         ], dtype=np.float32)
 
+        # Adjust images 
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        small = cv2.resize(gray, (S.out_size, S.out_size), interpolation=cv2.INTER_AREA)
+        normalized = small.astype(np.float32) / 255.0
+        img_vec = normalized.flatten()
+
         # Get graph features
         graph_vec = self.graph.get_features(self.current_node)
 
         # Concat features
-        return np.concatenate([yolo_vec, spatial_vec, graph_vec]).astype(np.float32)
+        return np.concatenate([yolo_vec, spatial_vec, graph_vec, img_vec]).astype(np.float32)
 
     def update(self, action, img, pic):
         # Update steps if key != enter

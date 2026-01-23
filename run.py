@@ -2,7 +2,7 @@
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.logger import configure
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 # Project modules
 from settings import S
@@ -35,7 +35,6 @@ def train(save_path: str, stops_path: str, weights_path = None):
     """
     env, _ = make_env(stops_path)
     vec_env = DummyVecEnv([lambda: env])
-    vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Resume training 
     if weights_path:
@@ -82,7 +81,6 @@ def infer(stops_path: str, weights_path: str, ignore_path: str = None):
     # Wrap environment
     env, num_stops = make_env(stops_path, ignore_path)
     vec_env = DummyVecEnv([lambda: env])
-    vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Load the agent
     agent = PPO.load(weights_path, env=vec_env)
@@ -107,5 +105,5 @@ if __name__ == "__main__":
         start_server(port=5000)
         
     # Run training/inference loop here!
-    # train("weights/PPO", "assets/all_val.csv", "weights/1009664")
-    infer("assets/missed.csv", "weights/latest")
+    train("weights/PPO", "assets/all_val.csv")
+    # infer("assets/all_val.csv", "weights/updated")
