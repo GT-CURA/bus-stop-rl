@@ -1,7 +1,7 @@
 class S: 
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
-    run_server = True                   # Launch webserver, allowing you to view the program in action
+    run_server = False                  # Launch webserver, allowing you to view the program in action
     request_msgs = False                # Send messages on start and completion of requests
     max_retries = 5                     # Max number of retries for a failed request
     wait_time = 0                       # Wait time in seconds between steps
@@ -13,7 +13,7 @@ class S:
     """ Stop Loader Properties """
     shuffle_stops = False               # Randomly shuffle stops
     scramble_stops = True               # Randomly move around if stop is visible upon loading
-    before_scrambling = 0               # How many stops to load before starting to scramble stops
+    before_scrambling = 1000            # How many stops to load before starting to scramble stops
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop
     loop_stops = True                   # Loop back to the beginning if we run out of stops
 
