@@ -26,6 +26,9 @@ class StopFeatureExtractor(BaseFeaturesExtractor):
         self.d_model = 128
         self.num_heads = 4
 
+        # CNN dimensions
+        self.cnn_final = 4
+
         # YOLO token
         self.yolo_net = nn.Sequential(
             nn.Linear(self.yolo_dim, 256),
@@ -47,24 +50,21 @@ class StopFeatureExtractor(BaseFeaturesExtractor):
             nn.Linear(64, self.d_model)
         )
 
-        # Basic CNN
+        # 3D CNN
         self.img_conv = nn.Sequential(
-            nn.Conv2d(S.stack_sz, 16, kernel_size=5, stride=2, padding=2),
+            # kernel_size = (temporal, height, width)
+            nn.Conv3d(1, 16, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2)),
             nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=5, stride=2, padding=2),
+            nn.Conv3d(16, 32, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2)),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU()
+            nn.Conv3d(32, 64, kernel_size=(3, 3, 3), stride=(1, 2, 2), padding=(1, 1, 1)),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool3d((S.stack_sz, self.cnn_final, self.cnn_final)),
         )
 
         # Projects to d_model size
-        self.img_proj = nn.Conv2d(64, self.d_model, kernel_size=1)
+        self.img_proj = nn.Linear(64 * self.cnn_final * self.cnn_final, self.d_model)
 
-        # Query for spatial pooling
-        self.spatial_query = nn.Parameter(th.randn(1,1, self.d_model))
-        self.spatial_attn = nn.MultiheadAttention(
-            self.d_model, num_heads=4, batch_first=True)
-        
         # Temporal positional embeddings
         self.pos_emb = nn.Embedding(
             num_embeddings=S.stack_sz,
@@ -111,22 +111,15 @@ class StopFeatureExtractor(BaseFeaturesExtractor):
         img_feats  = obs[:, :, S.features_dim + self.bb_dim + S.geo_dim:
                          S.features_dim + self.bb_dim + S.geo_dim + S.img_dim]
 
-        # Process image 
-        img_feats = img_feats.view(bs, S.stack_sz, S.out_size, S.out_size)
-        img_features = self.img_conv(img_feats)
-        img_features = self.img_proj(img_features)
+        # Run through CNN
+        img_feats = img_feats.view(bs, 1, S.stack_sz, S.out_size, S.out_size)
+        img_features = self.img_conv(img_feats)  # [bs, 64, stack_sz, 4, 4]
 
-        # Flatten spatial dims
-        height, width = img_features.shape[2:]
-        img_token = img_features.reshape(bs, self.d_model, -1).permute(0,2,1)
-
-        # Spatial attention pooling
-        query = self.spatial_query.expand(bs, -1, -1)
-        img_pooled, _ = self.spatial_attn(query, img_token, img_token)
-        img_pooled = img_pooled.squeeze(1)
-
-        # Expand tto match temporal dim
-        img_token = img_pooled.unsqueeze(1).expand(-1, S.stack_sz, -1)
+        # Reshape to get per-timestep features
+        img_features = img_features.permute(0, 2, 1, 3, 4) 
+        img_features = img_features.reshape(bs * S.stack_sz, -1)
+        img_token = self.img_proj(img_features)
+        img_token = img_token.view(bs, S.stack_sz, self.d_model)
 
         # Run remaining NNs 
         yolo_token = self.yolo_net(yolo_feats)
