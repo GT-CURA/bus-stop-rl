@@ -36,7 +36,7 @@ class Reqs:
             self.caching = True
 
     def pull_image(self, pic: Pic, zoom = False):
-        cached_pic = None
+        img = None
         
         # Check cache
         if self.caching:
@@ -44,11 +44,10 @@ class Reqs:
             pic_path = Path(file_name)
 
             if pic_path.exists():
-                cached_pic = cv2.imread(file_name)
-                content = cached_pic
+                img = cv2.imread(file_name)
 
         # If no hit, pull from GSV 
-        if cached_pic is None:
+        if img is None:
             content = self.pull_img(pic) if zoom else self.new_pull_img(pic)
             
             # Decode image 
@@ -62,24 +61,7 @@ class Reqs:
             if self.caching:
                 cv2.imwrite(filename=file_name, img=img)
 
-        return content
-    
-    def new_pull_img(self, pic: Pic):
-        # Get pano ID if we don't have it
-        if not pic.pano_id:
-            self.pull_pano_info(pic)
-
-        url = f"https://streetviewpixels-pa.googleapis.com/v1/thumbnail?cb_client=maps_sv.tactile&w=640&h=640&panoid={pic.pano_id}&yaw={pic.heading}&pitch=0.00"
-        response = self._request(url, context="Pulling Thumbnail")
-        if response is None:
-            print(response)
-
-        # If API returns error image or no content
-        if response.status_code == 400:
-            print("[Requests] Got 400 error, falling back to old_pull_img")
-            return self.pull_img(pic)
-        
-        return response.content
+        return img
     
     def pull_img(self, pic: Pic):
         # Increment usage count for current key
