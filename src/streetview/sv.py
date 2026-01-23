@@ -1,7 +1,6 @@
 from settings import S
 import numpy as np
 import math
-import cv2
 from src.streetview.move import Move
 from src.utils.objects import Stop, Pic
 from src.streetview.sv_requests import Reqs
@@ -96,7 +95,7 @@ class StreetView:
             
             # Pull new pic
             zoom = True if self.current_pic.zoom_lvl > 0 else False
-            self.reqs.pull_image(self.current_pic, zoom)
+            self.current_img = self.reqs.pull_image(self.current_pic, zoom)
 
         # Otherwise, just do metadata call
         else:

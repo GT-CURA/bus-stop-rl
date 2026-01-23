@@ -15,7 +15,7 @@ class Pic:
         return f"{self.lat},{self.lng}"
     
     def get_key(self):
-        return f"{self.lat}_{self.lng}_{self.heading}_{self.zoom_lvl}"
+        return f"{self.pano_id}_{round(self.heading,1)}_{self.zoom_lvl}"
     
 @dataclass
 class Viewpoint:
