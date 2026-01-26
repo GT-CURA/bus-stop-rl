@@ -11,6 +11,7 @@ from src.rl_env.env import StreetViewEnv
 from src.streetview.sv import StreetView
 from src.utils.loader import StopLoader
 from src.utils.server.server import start_server
+from wrapper import ActionOverrideWrapper
 
 def make_env(path: str, ignore_path: str = None):
     # Create streetview and loader
@@ -34,6 +35,15 @@ def train(save_path: str, stops_path: str, weights_path = None):
     :param weights_path: If resuming training, specify path to pretrained weights.
     """
     env, _ = make_env(stops_path)
+    
+    # TODO: Remove
+    env = ActionOverrideWrapper(
+        env,
+        forced_action=4,
+        force_prob=0.05,
+        enabled=True
+    )
+
     vec_env = DummyVecEnv([lambda: env])
 
     # Resume training 
@@ -106,4 +116,4 @@ if __name__ == "__main__":
         
     # Run training/inference loop here!
     train("weights/PPO", "assets/selected.csv", "weights/latest")
-    # infer("assets/all_val.csv", "weights/updated")
+    # infer("assets/all_val.csv", "weights/latest")
