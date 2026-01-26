@@ -8,12 +8,12 @@ class S:
     img_height = 640                    # Height of images requested from streetview
     img_width = 640                     # Width of images requested from streetview
     cache_dir = "graph_cache"           # Directory to save OSMNX graph cache in 
-    pic_caching = True                  # Save images for later reuse
+    pic_caching = False                 # Save images for later reuse
     
     """ Stop Loader Properties """
     shuffle_stops = False               # Randomly shuffle stops
     scramble_stops = True               # Randomly move around if stop is visible upon loading
-    before_scrambling = 1000            # How many stops to load before starting to scramble stops
+    before_scrambling = -1              # How many stops to load before starting to scramble stops
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop
     loop_stops = True                   # Loop back to the beginning if we run out of stops
 

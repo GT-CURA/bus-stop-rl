@@ -34,6 +34,8 @@ class Reqs:
         if S.pic_caching:
             os.makedirs("pic_cache", exist_ok=True)
             self.caching = True
+        else:
+            self.caching = False
 
     def pull_image(self, pic: Pic, zoom = False):
         img = None
@@ -63,6 +65,22 @@ class Reqs:
 
         return img
     
+    
+    def new_pull_img(self, pic: Pic):
+        # Get pano ID if we don't have it
+        if not pic.pano_id:
+            self.pull_pano_info(pic)
+        url = f"https://streetviewpixels-pa.googleapis.com/v1/thumbnail?cb_client=maps_sv.tactile&w=640&h=640&panoid={pic.pano_id}&yaw={pic.heading}&pitch=0.00"
+        response = self._request(url, context="Pulling Thumbnail")
+        if response is None:
+            print(response)
+        # If API returns error image or no content
+        if response.status_code == 400:
+            print("[Requests] Got 400 error, falling back to old_pull_img")
+            return self.pull_img(pic)
+        
+        return response.content
+
     def pull_img(self, pic: Pic):
         # Increment usage count for current key
         self.usage_counts[self.key] += 1
