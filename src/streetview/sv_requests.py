@@ -14,7 +14,7 @@ import numpy as np
 
 class Reqs:
     def __init__(self):
-        self.max_uses_per_key = 9500
+        self.max_uses_per_key = 6000
         self.keys = []
         self.current_key_index = 0
         self.counter_path = Path(f"{S.log_dir}/api_calls.json")
