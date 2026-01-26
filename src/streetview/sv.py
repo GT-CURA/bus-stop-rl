@@ -88,8 +88,7 @@ class StreetView:
 
         # Zoom in
         elif action == "Zoom":
-            # self._zoom()
-            print(" ")
+            self._zoom()
 
         # Pull image if requested
         if pull_img:
