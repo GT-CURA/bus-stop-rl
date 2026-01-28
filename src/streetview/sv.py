@@ -102,9 +102,6 @@ class StreetView:
             if not self.current_pic.pano_id:
                 self.reqs.pull_pano_info(self.current_pic)
     
-    def check_cache(self):
-        dist = haversine(self.current_pic.lat, self.current_pic.lng, )
-
     def goto_start(self):
         """ Go back to the initial position. """
         # Create copy of the original pos

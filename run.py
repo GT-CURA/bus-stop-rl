@@ -35,15 +35,6 @@ def train(save_path: str, stops_path: str, weights_path = None):
     :param weights_path: If resuming training, specify path to pretrained weights.
     """
     env, _ = make_env(stops_path)
-    
-    # TODO: Remove
-    env = ActionOverrideWrapper(
-        env,
-        forced_action=4,
-        force_prob=0.05,
-        enabled=True
-    )
-
     vec_env = DummyVecEnv([lambda: env])
 
     # Resume training 
@@ -115,5 +106,5 @@ if __name__ == "__main__":
         start_server(port=5000)
         
     # Run training/inference loop here!
-    train("weights/PPO", "assets/all_val.csv", "weights/847872")
+    train("weights/PPO", "assets/all_val.csv", "weights/1167360_frequent_zoom.zip")
     # infer("assets/all_val.csv", "weights/updated")

@@ -11,7 +11,7 @@ class S:
     pic_caching = False                 # Save images for later reuse
     
     """ Stop Loader Properties """
-    shuffle_stops = False               # Randomly shuffle stops
+    shuffle_stops = True                # Randomly shuffle stops
     scramble_stops = True               # Randomly move around if stop is visible upon loading
     before_scrambling = -1              # How many stops to load before starting to scramble stops
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop
@@ -43,7 +43,7 @@ class S:
     undo_penalty = .02                  # Prevent agent from oscillating its actions 
     linger_penalty = .02                # Punish the model for staying at the same pano for too long (not moving)
     panning_penalty = .02
-    zoom_cost = .01                     # Slight penalty to prevent zoom spamming
+    zoom_cost = .01                    # Slight penalty to prevent zoom spamming
 
     """ PPO Properties """
     bbs_kept = 3                        # How many of the highest conf bounding boxes will be kept per frame

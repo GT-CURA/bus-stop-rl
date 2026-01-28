@@ -14,7 +14,7 @@ import numpy as np
 
 class Reqs:
     def __init__(self):
-        self.max_uses_per_key = 6000
+        self.max_uses_per_key = 2800
         self.keys = []
         self.current_key_index = 0
         self.counter_path = Path(f"{S.log_dir}/api_calls.json")
@@ -50,7 +50,7 @@ class Reqs:
 
         # If no hit, pull from GSV 
         if img is None:
-            content = self.pull_img(pic) if zoom else self.new_pull_img(pic)
+            content = self.pull_img(pic)
             
             # Decode image 
             nparr = np.frombuffer(content, np.uint8)
@@ -64,22 +64,6 @@ class Reqs:
                 cv2.imwrite(filename=file_name, img=img)
 
         return img
-    
-    
-    def new_pull_img(self, pic: Pic):
-        # Get pano ID if we don't have it
-        if not pic.pano_id:
-            self.pull_pano_info(pic)
-        url = f"https://streetviewpixels-pa.googleapis.com/v1/thumbnail?cb_client=maps_sv.tactile&w=640&h=640&panoid={pic.pano_id}&yaw={pic.heading}&pitch=0.00"
-        response = self._request(url, context="Pulling Thumbnail")
-        if response is None:
-            print(response)
-        # If API returns error image or no content
-        if response.status_code == 400:
-            print("[Requests] Got 400 error, falling back to old_pull_img")
-            return self.pull_img(pic)
-        
-        return response.content
 
     def pull_img(self, pic: Pic):
         # Increment usage count for current key
