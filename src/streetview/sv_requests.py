@@ -19,6 +19,7 @@ class Reqs:
         self.current_key_index = 0
         self.counter_path = Path(f"{S.log_dir}/api_calls.json")
         self.prev_img = None
+        self.zoom_prev = False
 
         # Load keys
         with open(S.key_path, "r") as f:
@@ -42,9 +43,12 @@ class Reqs:
         img = None
         
         # Reuse saved image if spamming zoom. I'm tired 
-        if self.prev_img is not None and pic.zoom_lvl == 2 and zoom == True:
+        if self.prev_img is not None and pic.zoom_lvl == 2 and self.zoom_prev == True:
             return self.prev_img
         
+        # Update zoom lvl
+        self.zoom_prev = True if pic.zoom_lvl == 2 else False
+
         # Check cache
         if self.caching:
             file_name = f"pic_cache/{pic.get_key()}.png"
@@ -68,6 +72,7 @@ class Reqs:
             if self.caching:
                 cv2.imwrite(filename=file_name, img=img)
 
+        self.prev_img = img
         return img
 
 
