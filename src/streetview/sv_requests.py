@@ -18,6 +18,7 @@ class Reqs:
         self.keys = []
         self.current_key_index = 0
         self.counter_path = Path(f"{S.log_dir}/api_calls.json")
+        self.prev_img = None
 
         # Load keys
         with open(S.key_path, "r") as f:
@@ -39,6 +40,10 @@ class Reqs:
 
     def pull_image(self, pic: Pic, zoom = False):
         img = None
+        
+        # Reuse saved image if spamming zoom. I'm tired 
+        if self.prev_img is not None and pic.zoom_lvl == 2 and zoom == True:
+            return self.prev_img
         
         # Check cache
         if self.caching:
@@ -64,6 +69,7 @@ class Reqs:
                 cv2.imwrite(filename=file_name, img=img)
 
         return img
+
 
     def pull_img(self, pic: Pic):
         # Increment usage count for current key
