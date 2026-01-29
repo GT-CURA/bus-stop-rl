@@ -64,8 +64,8 @@ class LogManager:
             "longitude": episode.stop.og_lng,
             "date": None,
             "steps": episode.steps,
-            "est_lat": None,
-            "est_lng": None
+            "est_lat": 0,
+            "est_lng": 0
         }
 
         # Initialize amenity scores

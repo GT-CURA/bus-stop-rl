@@ -93,7 +93,7 @@ def infer(stops_path: str, weights_path: str, ignore_path: str = None):
         while True:
 
             # Get action, do step
-            action, _ = agent.predict(obs, deterministic=False)
+            action, _ = agent.predict(obs, deterministic=True)
             obs, reward, done, info = vec_env.step(action)
 
             # Break if episode finished
