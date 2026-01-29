@@ -3,6 +3,7 @@ import threading
 import time
 import csv
 from settings import S
+from src.utils.tools import globalize_coords
 
 AMENITIES = ["sign", "shelter", "trash can", "seating"]
 
@@ -62,6 +63,9 @@ class LogManager:
             "latitude": episode.stop.og_lat,
             "longitude": episode.stop.og_lng,
             "date": None,
+            "steps": episode.steps,
+            "est_lat": None,
+            "est_lng": None
         }
 
         # Initialize amenity scores
@@ -117,7 +121,15 @@ class LogManager:
                 best_conf_overall = det.primary_conf
                 best_date = getattr(det, "date", None)
 
+        # Record date from best hyp 
         record["date"] = best_date
+
+        # Record estimated coords
+        if best_hyp.triangulated_pos:
+            hyp_x, hyp_y = best_hyp.triangulated_pos 
+            est_lat, est_lng = globalize_coords(hyp_x, hyp_y, episode.initial_lat, episode.initial_lng)
+            record["est_lat"] = est_lat
+            record["est_lng"] = est_lng
         return record
 
     def _flush_to_disk(self, rows=None):
@@ -141,4 +153,4 @@ class LogManager:
 
     @staticmethod
     def _fieldnames():
-        return ["name", "latitude", "longitude", "date"] + AMENITIES
+        return ["name", "latitude", "longitude", "date", "steps", "est_lat", "est_lng"] + AMENITIES

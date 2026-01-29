@@ -11,7 +11,6 @@ from src.rl_env.env import StreetViewEnv
 from src.streetview.sv import StreetView
 from src.utils.loader import StopLoader
 from src.utils.server.server import start_server
-from wrapper import ActionOverrideWrapper
 
 def make_env(path: str, ignore_path: str = None):
     # Create streetview and loader
@@ -106,5 +105,5 @@ if __name__ == "__main__":
         start_server(port=5000)
         
     # Run training/inference loop here!
-    train("weights/PPO", "assets/all_val.csv", "weights/1167360_frequent_zoom.zip")
-    # infer("assets/all_val.csv", "weights/updated")
+    # train("weights/PPO", "assets/all_val.csv", "weights/1265664")
+    infer("assets/all_val.csv", "weights/1265664")

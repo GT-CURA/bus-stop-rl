@@ -17,3 +17,12 @@ def localize_coords(lat, lng, initial_lat, initial_lng):
     x = R * dlon * np.cos(np.radians(initial_lat))
     y = R * dlat
     return x, y
+
+def globalize_coords(x, y, initial_lat, initial_lng):
+    """ Reverts coords from local plane to global"""
+    R = 6371000.0
+    dlat = y / R
+    dlon = x / (R * np.cos(np.radians(initial_lat)))
+    lat = initial_lat + np.degrees(dlat)
+    lng = initial_lng + np.degrees(dlon)
+    return lat, lng

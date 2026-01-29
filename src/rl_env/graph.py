@@ -360,7 +360,7 @@ class Graph:
                     # Update score (includes box size)
                     hyp.score = max(
                         hyp.score,
-                        det.primary_conf * (det.box_sz + 1e-6)
+                        det.primary_conf
                     )
                     hyp.last_seen = step
                     merged = True
