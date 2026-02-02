@@ -2,14 +2,15 @@
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.logger import configure
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 # Project modules
-from resources.custom_policies import StopMLPPolicy
-from rl import StreetView, StreetViewEnv
-from settings import S 
-from resources.loader import StopLoader
-from resources.server import start_server
+from settings import S
+from src.feature_extractor import StopMLPPolicy
+from src.rl_env.env import StreetViewEnv
+from src.streetview.sv import StreetView
+from src.utils.loader import StopLoader
+from src.utils.server.server import start_server
 
 def make_env(path: str, ignore_path: str = None):
     # Create streetview and loader
@@ -18,7 +19,6 @@ def make_env(path: str, ignore_path: str = None):
 
     # Load stops, launch SV
     stop_loader.load_stops(path, ignore_path)
-    sv.launch()
 
     # Pass YOLO to loader :(
     env = StreetViewEnv(sv, stop_loader)
@@ -35,7 +35,6 @@ def train(save_path: str, stops_path: str, weights_path = None):
     """
     env, _ = make_env(stops_path)
     vec_env = DummyVecEnv([lambda: env])
-    vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Resume training 
     if weights_path:
@@ -67,7 +66,7 @@ def train(save_path: str, stops_path: str, weights_path = None):
     agent.set_logger(logger)
 
     # Begin learning
-    agent.learn(total_timesteps=409600, callback=checkpoint_callback)
+    agent.learn(total_timesteps=3276800, callback=checkpoint_callback)
     
     # Save weights, close gym
     agent.save(save_path)
@@ -82,7 +81,6 @@ def infer(stops_path: str, weights_path: str, ignore_path: str = None):
     # Wrap environment
     env, num_stops = make_env(stops_path, ignore_path)
     vec_env = DummyVecEnv([lambda: env])
-    vec_env = VecFrameStack(vec_env, n_stack=S.stack_sz)
 
     # Load the agent
     agent = PPO.load(weights_path, env=vec_env)
@@ -95,7 +93,7 @@ def infer(stops_path: str, weights_path: str, ignore_path: str = None):
         while True:
 
             # Get action, do step
-            action, _ = agent.predict(obs, deterministic=False)
+            action, _ = agent.predict(obs, deterministic=True)
             obs, reward, done, info = vec_env.step(action)
 
             # Break if episode finished
@@ -105,7 +103,7 @@ def infer(stops_path: str, weights_path: str, ignore_path: str = None):
 if __name__ == "__main__":
     if S.run_server: 
         start_server(port=5000)
-
+        
     # Run training/inference loop here!
-    # train("weights/PPO", "assets/all_stops.csv", "507904")
-    infer("assets/study_area.csv", "573440")
+    # train("weights/PPO", "assets/all_val.csv", "weights/1265664")
+    infer("assets/all_val.csv", "weights/1265664")

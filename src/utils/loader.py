@@ -1,9 +1,9 @@
 import json
 from random import sample, shuffle, randint
-from resources.stop import Stop
-from resources.stop_detector import StopDetector
+from src.utils.objects import Stop
+from src.stop_detector import StopDetector
 import csv
-from resources.streetview import StreetView
+from src.streetview.sv import StreetView
 from settings import S
 
 class StopLoader:
@@ -13,6 +13,7 @@ class StopLoader:
         self.index = 0
         self.stops = None
         self.stop_detector: StopDetector = None
+        self.num_loaded = 0
         
     def load_stops(self, path: str, ignore_path: str = None):
         # Find which stops to ignore if specified
@@ -86,7 +87,7 @@ class StopLoader:
             return self.load_stop()
 
         # After 150 stops, if stop is a positive, scramble
-        if self.index > S.before_scrambling and S.scramble_stops:
+        if self.num_loaded > S.before_scrambling and S.scramble_stops:
                 
                 # Check if stop is visible 
                 img = self.sv.get_img()
@@ -100,6 +101,7 @@ class StopLoader:
         # Tell SV to log initial position
         self.index += 1
         self.sv.set_start()
+        self.num_loaded += 1
         return stop
 
     """ WIP way to use positive stops to train """
@@ -107,11 +109,11 @@ class StopLoader:
         print("\n[Stop Loader] Scrambling positive stop...")
 
         # Pick a direction to walk in, press key x times
-        action = sample(['w','s'], 1)
+        action = sample(['Forwards','Backwards'], 1)
         self.press_loop(action, randint(0, 4))
 
         # Pick a direction to turn in, press key x times
-        action = sample(['a','d'], 1)
+        action = sample(['Clockwise','Counterclockwise'], 1)
         self.press_loop(action, randint(0,3))
 
         # Check if stop is still visible
@@ -127,7 +129,7 @@ class StopLoader:
             
             # Turn away from the stop
             else:
-                action = sample(['a','d'], 1)
+                action = sample(['Clockwise','Counterclockwise'], 1)
                 self.press_loop(action, randint(0,2))
         print("[Stop Loader] Complete!\n")
 
