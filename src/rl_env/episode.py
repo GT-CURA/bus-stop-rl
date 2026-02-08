@@ -271,7 +271,8 @@ class Episode():
         final_reward = np.clip(reward, -.5, .5)
         
         # Announce 
-        print(f"Graph reward: {graph_rwd} | Direction reward: {direction_rwd} | Coord Reward: {coord_rwd}")
+        if S.msg_score_breakdown:
+            print(f"Graph reward: {graph_rwd} | Direction reward: {direction_rwd} | Coord Reward: {coord_rwd}")
         return final_reward, done
     
     def announce(self, key, reward):
@@ -279,5 +280,6 @@ class Episode():
         name = self.stop.place_name
         lat = self.stop.og_lat
         lng = self.stop.og_lng
-        print(f"[Step {self.steps}] Action: '{key}' | Reward: {reward:.3f} | Steps Since Found: {self.steps_since_found}")
+        print("\n\n", "="*15, f"[Step {self.steps}]","="*15)
+        print(f"Action: {key} \nReward: {reward:.3f} \nSteps Since Found: {self.steps_since_found}")
         print(f"Stop: {name} ({lat}, {lng})")

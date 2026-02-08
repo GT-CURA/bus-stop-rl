@@ -15,10 +15,11 @@ class StopDetector:
         self.model = YOLO(S.yolo_path)
         self.sv = sv
         self.context = context
+        self.verbose = S.yolo_msgs
 
     def run(self, img):
         # Run model
-        output = self.model(img)[0]
+        output = self.model(img, verbose=self.verbose)[0]
 
         # Save output
         if S.run_server: output.save('src/utils/server/static/frame.jpg')
