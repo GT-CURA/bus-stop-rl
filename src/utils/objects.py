@@ -72,3 +72,38 @@ class Hypothesis:
     best_bearing: float
     prev_bearing_err: float
     side: str
+
+class Node:
+    def __init__(self, lat, lng):
+        # Location
+        self.lat = lat
+        self.lng = lng
+
+        # Neighbor pano IDs
+        self.neighbors = set()
+
+        # Detections and scorecard
+        self.best_conf = 0.0
+        self.best_bearing = None
+        self.scores = {"shelter": 0.0, "sign": 0.0, "trash can": 0.0, "seating": 0.0}
+
+        # Detections (class in objects module) 
+        self.detections = []
+        self.det_count = {}
+
+        # Visit counter
+        self.visits = 0
+    
+    def add_det(self, det: Detection):
+        # Add detection to node
+        self.detections.append(det)
+        
+        if det.label in ["shelter", "sign"]:
+            # Keep track of how many times this det has been found 
+            if det.key in self.det_count:
+                self.det_count[det.key] += 1
+            else:
+                self.det_count[det.key] = 1
+            return self.det_count[det.key]
+        else:
+            return 0

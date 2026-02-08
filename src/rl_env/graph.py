@@ -1,46 +1,11 @@
 from collections import deque
 import numpy as np
-from src.utils.objects import Hypothesis, Detection, Pic
-from src.utils.tools import localize_coords
-
-class Node:
-    def __init__(self, lat, lng):
-        # Location
-        self.lat = lat
-        self.lng = lng
-
-        # Neighbor pano IDs
-        self.neighbors = set()
-
-        # Detections and scorecard
-        self.best_conf = 0.0
-        self.best_bearing = None
-        self.scores = {"shelter": 0.0, "sign": 0.0, "trash can": 0.0, "seating": 0.0}
-
-        # Detections (class in objects module) 
-        self.detections = []
-        self.det_count = {}
-
-        # Visit counter
-        self.visits = 0
-    
-    def add_det(self, det: Detection):
-        # Add detection to node
-        self.detections.append(det)
-        
-        if det.label in ["shelter", "sign"]:
-            # Keep track of how many times this det has been found 
-            if det.key in self.det_count:
-                self.det_count[det.key] += 1
-            else:
-                self.det_count[det.key] = 1
-            return self.det_count[det.key]
-        else:
-            return 0
+from src.utils.objects import Hypothesis, Detection, Pic, Node
+from shapely.geometry import Point
+from src.utils.context import RoadContext
 
 class Graph:
-
-    def __init__(self, initial_lat, initial_lng, debug=False):
+    def __init__(self, context: RoadContext, debug=False):
         self.graph = {}
         self.prev_node_id = None
         self.hypotheses = []
@@ -50,11 +15,10 @@ class Graph:
         self.conf_threshold = .4
         self.prev_coord_dist = None
         self.prev_coord_hyp = None
-        self.initial_lat = initial_lat
-        self.initial_lng = initial_lng
         self.last_dir_err = (0.0, 0.0)
         self.last_coord_dist_scaled = 0.0
         self.last_has_triangulated = 0.0
+        self.context = context
 
     def add_node(self, pic: Pic, add_neighbors = True):
         """ Adds and updates nodes. """
@@ -196,7 +160,7 @@ class Graph:
 
             # Bearing from current pano to triangulated stop
             if best.triangulated_pos is not None:
-                pano_x, pano_y = localize_coords(pic.lat, pic.lng, self.initial_lat, self.initial_lng)
+                pano_x, pano_y = self.context.to_local.transform(pic.lng, pic.lat)
                 desired = self.bearing_from(pano_x, pano_y, best.triangulated_pos)
             elif getattr(best, "best_bearing", None) is not None:
                 # Fallback: use stored bearing if no triangulation yet
@@ -227,7 +191,7 @@ class Graph:
 
     def calc_coord_rwd(self, pic: Pic):
         """ Reward agent for stepping towards an estimated coord for bus stop. """
-        pano_x, pano_y = localize_coords(pic.lat, pic.lng, self.initial_lat, self.initial_lng)
+        pano_x, pano_y = self.context.to_local.transform(pic.lng, pic.lat)
 
         # Only use hypotheses with a triangulated position
         triangulated = [h for h in self.hypotheses if h.triangulated_pos is not None]
@@ -266,49 +230,39 @@ class Graph:
         return reward
     
     def triangulate(self, rays):
-        """
-        rays: list of dicts with {x, y, bearing}
-        Returns (x,y) triangulated intersection or None if rays are parallel.
-        """
+        """ Triangulate pos of bus stop using least squares """
 
         if len(rays) < 2:
             return None
 
-        pts = []
-        for i in range(len(rays)):
-            for j in range(i + 1, len(rays)):
-                r1, r2 = rays[i], rays[j]
+        A = []
+        b = []
 
-                # First ray
-                x1, y1 = r1["x"], r1["y"]
-                t1 = np.radians(r1["bearing"])
-                d1 = np.array([np.sin(t1), np.cos(t1)])
+        for r in rays:
+            x0, y0 = r["x"], r["y"]
+            theta = np.radians(r["bearing"])
 
-                # Second ray
-                x2, y2 = r2["x"], r2["y"]
-                t2 = np.radians(r2["bearing"])
-                d2 = np.array([np.sin(t2), np.cos(t2)])
+            # Unit direction of ray
+            d = np.array([np.sin(theta), np.cos(theta)])
 
-                A = np.array([[d1[0], -d2[0]],
-                            [d1[1], -d2[1]]])
-                b = np.array([x2 - x1, y2 - y1])
+            # Normal vector to ray
+            n = np.array([-d[1], d[0]])
 
-                # Skip if rays are (near-)parallel
-                if abs(np.linalg.det(A)) < 1e-6:
-                    continue
+            # Line constraint
+            A.append(n)
+            b.append(n @ np.array([x0, y0]))
 
-                t_sol = np.linalg.solve(A, b)
-                t1_sol = t_sol[0]
+        A = np.vstack(A)
+        b = np.array(b)
 
-                px = x1 + t1_sol * d1[0]
-                py = y1 + t1_sol * d1[1]
-                pts.append((px, py))
-
-        if not pts:
+        # Bearrings parallel
+        ATA = A.T @ A
+        if np.linalg.cond(ATA) > 1e6:
             return None
 
-        pts = np.array(pts)
-        return float(pts[:, 0].mean()), float(pts[:, 1].mean())
+        # Solve least squares
+        xy = np.linalg.solve(ATA, A.T @ b)
+        return float(xy[0]), float(xy[1])
 
     def bearing_from(self, x1, y1, target_xy):
         x2, y2 = target_xy
@@ -348,14 +302,32 @@ class Graph:
                 if self.match_hypothesis(hyp, det):
                     hyp.observations.append(det)
 
-                    # Triangulate from all hyp's observations
+                    # Organize observations into rays
                     rays = [
                         {"x": o.local_x, "y": o.local_y, "bearing": o.bearing}
                         for o in hyp.observations
                     ]
+
+                    # Triangulate rays 
                     tri = self.triangulate(rays)
                     if tri is not None:
-                        hyp.triangulated_pos = tri
+                        # Get rd data from move class
+                        seg = self.context.segment
+                        last_perp = self.context.perp
+
+                        # Interpolate pt onto rd seg 
+                        pt = Point(tri)
+                        proj = seg.project(pt)
+                        on_road = seg.interpolate(proj)
+
+                        # Determine side
+                        side_sign = 1.0 if hyp.side == "Left" else -1.0
+                        curb_offset = 7.5
+
+                        # Offset position
+                        x = on_road.x + side_sign * curb_offset * last_perp[0]
+                        y = on_road.y + side_sign * curb_offset * last_perp[1]
+                        hyp.triangulated_pos = (x,y)
 
                     # Update score (includes box size)
                     hyp.score = max(
@@ -388,7 +360,6 @@ class Graph:
 
         # Keep top 3 hypotheses by score
         self.hypotheses = sorted(self.hypotheses, key=lambda h: -h.score)[:3]
-
 
     def match_hypothesis(self, hyp: Hypothesis, det: Detection):
         """

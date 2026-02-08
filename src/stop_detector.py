@@ -6,13 +6,15 @@ import numpy as np
 from src.rl_env.graph import Node
 from src.utils.objects import Detection, Pic 
 from src.streetview.sv import StreetView
-from src.utils.tools import localize_coords
+from src.utils.context import RoadContext
+
 # A wrapper for the YOLO model trained to detect stops
 class StopDetector:
 
-    def __init__(self, sv: StreetView):
+    def __init__(self, sv: StreetView, context: RoadContext):
         self.model = YOLO(S.yolo_path)
         self.sv = sv
+        self.context = context
 
     def run(self, img):
         # Run model
@@ -51,8 +53,8 @@ class StopDetector:
             delta_deg = (box_center -.5) * 90
             bearing = (pic.heading + delta_deg) % 360
 
-            # Localize coords 
-            local_x, local_y = localize_coords(pic.lat, pic.lng, initial_lat, initial_lng)
+            # Localize coords
+            local_x, local_y = self.context.to_local.transform(pic.lng, pic.lat)
 
             # Build detection, add to node
             det = Detection(

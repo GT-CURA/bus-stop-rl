@@ -5,16 +5,17 @@ from src.streetview.move import Move
 from src.utils.objects import Stop, Pic
 from src.streetview.sv_requests import Reqs
 from src.streetview.graph_cache import GraphCache
-from src.utils.tools import haversine
+from src.utils.context import RoadContext
 
 class StreetView:
-    def __init__(self):
+    def __init__(self, road_context: RoadContext):
         self.reqs = Reqs()
         self.current_img = None
         self.current_stop: Stop
         self.current_pic: Pic
         self.start_state = None
         self.graph_cache = GraphCache()
+        self.road_context = road_context
 
     def goto_pt(self, stop: Stop = None):
         # Return if failed to load stop
@@ -23,7 +24,7 @@ class StreetView:
         self.current_stop = stop
 
         # Build Move class (pull OSMNX)
-        self.move = Move(self.graph_cache, stop.og_lat, stop.og_lng)
+        self.move = Move(self.graph_cache, self.road_context, stop.og_lat, stop.og_lng)
 
         # Snap spawnpoint to road (don't spawn in parking lot)
         snapped = self.move.snap_pt(
@@ -159,7 +160,7 @@ class StreetView:
     def calc_street_side(self, det):
 
         # Get road vectors
-        perp = self.move.get_road_vec()
+        perp = self.road_context.perp
 
         # NOTE: Fix this 
         if perp is None: 

@@ -3,10 +3,11 @@ import numpy as np
 from settings import S
 from src.rl_env.graph import Graph
 from src.utils.tools import haversine
+from src.utils.context import RoadContext
 import cv2 
 
 class Episode():
-    def __init__(self, stop, stop_detector: StopDetector, pic):
+    def __init__(self, stop_detector: StopDetector, context: RoadContext, stop, pic):
         self.reward = 0.0
         self.steps = 0
         self.found = False
@@ -23,8 +24,12 @@ class Episode():
         # Determine geo info
         self.initial_lat, self.initial_lng, self.initial_heading = pic.lat, pic.lng, pic.heading
 
+        # Setup context for this stop
+        self.context = context
+        self.context.set_context(stop)
+
         # Build graph class
-        self.graph = Graph(self.initial_lat, self.initial_lng)
+        self.graph = Graph(context)
 
         # Build current node
         self.current_node = self.graph.add_node(pic, False)

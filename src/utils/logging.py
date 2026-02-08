@@ -3,12 +3,13 @@ import threading
 import time
 import csv
 from settings import S
-from src.utils.tools import globalize_coords
+from src.utils.context import RoadContext
 
 AMENITIES = ["sign", "shelter", "trash can", "seating"]
 
 class LogManager:
-    def __init__(self, flush_every=5, flush_interval=100):
+    def __init__(self, context = RoadContext, flush_every=5, flush_interval=100):
+        self.context = context
         self.flush_every = flush_every
         self.flush_interval = flush_interval
         self.buffer = []
@@ -126,8 +127,8 @@ class LogManager:
 
         # Record estimated coords
         if best_hyp.triangulated_pos:
-            hyp_x, hyp_y = best_hyp.triangulated_pos 
-            est_lat, est_lng = globalize_coords(hyp_x, hyp_y, episode.initial_lat, episode.initial_lng)
+            hyp_x, hyp_y = best_hyp.triangulated_pos
+            est_lat, est_lng = self.context.to_global.transform(hyp_x, hyp_y)
             record["est_lat"] = est_lat
             record["est_lng"] = est_lng
         return record

@@ -11,7 +11,7 @@ class S:
     pic_caching = False                 # Save images for later reuse
     
     """ Stop Loader Properties """
-    shuffle_stops = False                # Randomly shuffle stops
+    shuffle_stops = True                # Randomly shuffle stops
     scramble_stops = False               # Randomly move around if stop is visible upon loading
     before_scrambling = -1              # How many stops to load before starting to scramble stops
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop

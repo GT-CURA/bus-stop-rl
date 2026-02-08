@@ -3,6 +3,7 @@ from src.stop_detector import StopDetector
 from src.utils.logging import LogManager
 from src.utils.loader import StopLoader
 from src.rl_env.episode import Episode
+from src.utils.context import RoadContext
 from settings import S
 import numpy as np
 import gymnasium as gym
@@ -11,11 +12,12 @@ from time import sleep
 from collections import deque
 
 class StreetViewEnv(gym.Env):
-    def __init__(self, streetview: StreetView, stop_loader: StopLoader):
+    def __init__(self, streetview: StreetView, stop_loader: StopLoader, context: RoadContext):
         # Set stuff up!!
         super().__init__()
+        self.context = context
         self.sv = streetview
-        self.stop_detector = StopDetector(self.sv)
+        self.stop_detector = StopDetector(self.sv, self.context)
         self.stop_loader = stop_loader
         
         # Frame stacking
@@ -35,7 +37,7 @@ class StreetViewEnv(gym.Env):
         self.episode = None
 
         # Setup logging, register for exit
-        self.log_manager = LogManager(flush_every=2, flush_interval=10)
+        self.log_manager = LogManager(context, flush_every=2, flush_interval=10)
         register(self.log_manager.shutdown)
 
     def reset(self, seed=None, options=None):
@@ -45,8 +47,14 @@ class StreetViewEnv(gym.Env):
         # Get the next stop, load it 
         stop = self.stop_loader.load_stop()
 
+        # Reset context 
+        self.context.set_context(stop)
+
+        # Goto stop in streetview
+        self.stop_loader.goto_stop(stop)
+
         # Create new episode
-        self.episode = Episode(stop, self.stop_detector, self.sv.current_pic)
+        self.episode = Episode(self.stop_detector, self.context, stop, self.sv.current_pic)
         
         # Set up frame stack 
         img = self.sv.get_img()
