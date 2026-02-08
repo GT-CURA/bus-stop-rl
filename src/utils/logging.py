@@ -128,7 +128,7 @@ class LogManager:
         # Record estimated coords
         if best_hyp.triangulated_pos:
             hyp_x, hyp_y = best_hyp.triangulated_pos
-            est_lat, est_lng = self.context.to_global.transform(hyp_x, hyp_y)
+            est_lng, est_lat = self.context.to_global.transform(hyp_x, hyp_y)
             record["est_lat"] = est_lat
             record["est_lng"] = est_lng
         return record
