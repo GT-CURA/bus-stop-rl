@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from shapely.geometry import Point, LineString
-from pyproj import Transformer
 import osmnx as ox
 from settings import S
 from src.utils.objects import Pic
@@ -336,7 +335,7 @@ class Move:
         """
         Scan along the road network in the intended direction looking for
         the nearest different pano_id that is still consistent with the
-        movement_vec (which already encodes “forward or backward”).
+        movement_vec (which already encodes "forward or backward").
 
         - Walks along the starting edge in steps of `step_m`.
         - If stepping beyond that edge, hops once onto the best-aligned
@@ -473,7 +472,7 @@ class Move:
           - For each candidate pano returned by GSV:
               * Compute vector from original position to pano position.
               * Take dot product with movement_vec.
-              * Because movement_vec already encodes “forward vs backward”,
+              * Because movement_vec already encodes "forward vs backward",
                 we simply require dot > 0 to accept the pano
                 (it lies roughly in the intended movement direction).
 
@@ -574,7 +573,7 @@ class Move:
         """
         Return (x,y) of graph node in meters (EPSG:3857).
 
-        OSMnx stores nodes with 'x' (lon), 'y' (lat). We transform to metric
+        OSMnx stores nodes with 'x' (lon), 'y' (lat). We transform to local
         coordinates to be consistent with edge geometries.
         """
         data = self.G_osm.nodes[node]
@@ -587,7 +586,7 @@ class Move:
 
     def _heading_to_unitvec(self, heading_deg):
         """
-        Convert a compass heading (0° = north, 90° = east, etc.)
+        Convert a compass heading (0 deg = north, 90 deg = east, etc.)
         into a unit vector in metric XY coordinates.
 
         - We treat x as East, y as North (EPSG:3857 axes).
@@ -708,7 +707,7 @@ class Move:
             return None
         if geom.geom_type == "LineString":
             coords = [
-                self.context.to_local.transform(lon, lat)[::-1]
+                self.context.to_local.transform(lon, lat)
                 for lon, lat in geom.coords
             ]
             return type(geom)(coords)
@@ -716,7 +715,7 @@ class Move:
             lines = []
             for g in geom.geoms:
                 coords = [
-                    self.context.to_local.transform(lon, lat)[::-1]
+                    self.context.to_local.transform(lon, lat)
                     for lon, lat in g.coords
                 ]
                 lines.append(type(g)(coords))
