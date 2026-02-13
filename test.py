@@ -19,7 +19,7 @@ from src.utils.context import  RoadContext
 # Shelter: 33.726259, -84.392056
 
 DEFAULT_LAT =  33.757545
-DEFAULT_LNG = -84.407611
+DEFAULT_LNG = -84.387770
 START_HEADING = 90
 
 # === Image Navigator Thread ===

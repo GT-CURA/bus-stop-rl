@@ -46,6 +46,9 @@ class Episode():
         }
         self.prev_action = None
 
+        # Announce new stop to console
+        self.announce_reset()
+
     def get_features(self, img, output, pic):
         # Get features, bb info from stop detector
         yolo_vec = self.stop_detector.extract_features(img, output)
@@ -158,7 +161,7 @@ class Episode():
         self.reward += reward 
 
         # Announce results to console 
-        self.announce(action, reward)
+        self.announce_step(action, reward)
         return features, reward, done
     
     def check_done(self, found):
@@ -275,11 +278,13 @@ class Episode():
             print(f"Graph reward: {graph_rwd} | Direction reward: {direction_rwd} | Coord Reward: {coord_rwd}")
         return final_reward, done
     
-    def announce(self, key, reward):
+    def announce_reset(self):
+        print("\n\n", "="*12, f"[STOP LOADED]","="*12)
+        print(f"Spawn point ({self.stop.og_lat}, {self.stop.og_lng})")
+        print(f"Stop ID {self.stop.place_name}")
+
+    def announce_step(self, key, reward):
         """ Print stop info and action to console at each step. """
-        name = self.stop.place_name
-        lat = self.stop.og_lat
-        lng = self.stop.og_lng
-        print("\n\n", "="*15, f"[Step {self.steps}]","="*15)
+        print("\n\n", "="*15, f"[STEP {self.steps}]","="*15)
         print(f"Action: {key} \nReward: {reward:.3f} \nSteps Since Found: {self.steps_since_found}")
-        print(f"Stop: {name} ({lat}, {lng})")
+        print(f"Stop: {self.stop.place_name} ({self.stop.og_lat}, {self.stop.og_lng})")
