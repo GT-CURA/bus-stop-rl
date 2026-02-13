@@ -5,6 +5,7 @@ from src.utils.server.server import start_server
 from src.rl_env.episode import Episode
 from src.stop_detector import StopDetector
 from src.utils.context import  RoadContext
+from src.utils.logging import LogManager
 
 # Cobb PKWY: 33.903458, -84.487905
 # Downtown: 33.757545, -84.387770
@@ -18,8 +19,8 @@ from src.utils.context import  RoadContext
 # Stuck: (33.758338, -84.347739)
 # Shelter: 33.726259, -84.392056
 
-DEFAULT_LAT =  33.757545
-DEFAULT_LNG = -84.387770
+DEFAULT_LAT =  33.796298
+DEFAULT_LNG = -84.350309
 START_HEADING = 90
 
 # === Image Navigator Thread ===
@@ -54,6 +55,8 @@ def streetview_control():
         0, 
         False)
     
+    # Setup log manager
+    log_manager = LogManager(context, flush_every=2, flush_interval=10)
     print("\n[Street View Controls Ready]")
 
     while True:
@@ -79,11 +82,14 @@ def streetview_control():
             elif keyboard.is_pressed("space"):
                 action = "space"
                 sv.goto_start()
-
+            elif keyboard.is_pressed("enter"):
+                action = "Next"
             if action:
                 print(f"Doing action: {action}")
-                if action != "space":
+                if action not in ("space", "Next"):
                     sv.do_action(action)
+                if action == "Next":
+                    log_manager.add(ep)
                 img = sv.get_img()
 
                 # Update episode

@@ -279,7 +279,7 @@ class Episode():
         return final_reward, done
     
     def announce_reset(self):
-        print("\n\n", "="*12, f"[STOP LOADED]","="*12)
+        print("\n\n\n\n\n\n", "="*12, f"[STOP LOADED]","="*12)
         print(f"Spawn point ({self.stop.og_lat}, {self.stop.og_lng})")
         print(f"Stop ID {self.stop.place_name}")
 

@@ -30,10 +30,6 @@ class StopDetector:
         if len(output.boxes) == 0: 
             return 0.0, False
 
-        # Get initial coords 
-        initial_lat = self.sv.start_state["lat"]
-        initial_lng = self.sv.start_state["lng"]
-
         # Scores to be calculated
         primary_score = 0.0
         secondary_score = 0.0

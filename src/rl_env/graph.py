@@ -311,23 +311,34 @@ class Graph:
                     # Triangulate rays 
                     tri = self.triangulate(rays)
                     if tri is not None:
-                        # Get rd data from move class
                         seg = self.context.segment
                         last_perp = self.context.perp
 
-                        # Interpolate pt onto rd seg 
+                        # Project triangulated point onto road
                         pt = Point(tri)
                         proj = seg.project(pt)
                         on_road = seg.interpolate(proj)
 
-                        # Determine side
-                        side_sign = 1.0 if hyp.side == "Left" else -1.0
-                        curb_offset = 7.5
-
-                        # Offset position
-                        x = on_road.x + side_sign * curb_offset * last_perp[0]
-                        y = on_road.y + side_sign * curb_offset * last_perp[1]
-                        hyp.triangulated_pos = (x,y)
+                        # Calculate which side the triangulation is on
+                        vec_to_tri = np.array([tri[0] - on_road.x, tri[1] - on_road.y])
+                        distance_from_road = np.linalg.norm(vec_to_tri)
+                        
+                        if distance_from_road > 0.1:
+                            # Normalize and scale to curb
+                            direction = vec_to_tri / distance_from_road
+                            curb_offset = 7.5
+                            
+                            # Move toward the triangulated side
+                            x = on_road.x + curb_offset * direction[0]
+                            y = on_road.y + curb_offset * direction[1]
+                        else:
+                            # Fallback: use perpendicular with detection side
+                            side_sign = 1.0 if hyp.side == "left" else -1.0
+                            curb_offset = 7.5
+                            x = on_road.x + side_sign * curb_offset * last_perp[0]
+                            y = on_road.y + side_sign * curb_offset * last_perp[1]
+                        
+                        hyp.triangulated_pos = (x, y)
 
                     # Update score (includes box size)
                     hyp.score = max(
