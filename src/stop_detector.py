@@ -116,7 +116,8 @@ class StopDetector:
         if primary_score > node.best_conf:
             node.best_conf = primary_score
             node.best_bearing = best_bearing
-        print(f"Raw primary: {primary_score} | Raw secondary: {secondary_score} | Raw Total: {total_score}")
+        if S.msg_score_breakdown:
+            print(f"Raw primary: {primary_score} | Raw secondary: {secondary_score} | Raw Total: {total_score}")
         return min(total_score, 1.0), found
     
     def extract_features(self, img, output):
