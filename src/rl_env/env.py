@@ -37,7 +37,7 @@ class StreetViewEnv(gym.Env):
         self.episode = None
 
         # Setup logging, register for exit
-        self.log_manager = LogManager(context, flush_every=2, flush_interval=10)
+        self.log_manager = LogManager(flush_every=2, flush_interval=10)
         register(self.log_manager.shutdown)
 
     def reset(self, seed=None, options=None):

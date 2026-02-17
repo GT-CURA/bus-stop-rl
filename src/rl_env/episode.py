@@ -26,7 +26,6 @@ class Episode():
 
         # Setup context for this stop
         self.context = context
-        self.context.set_context(stop)
 
         # Build graph class
         self.graph = Graph(context)
