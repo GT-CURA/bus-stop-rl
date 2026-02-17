@@ -61,7 +61,6 @@ class LogManager:
             "name": episode.stop.place_name,
             "latitude": episode.stop.og_lat,
             "longitude": episode.stop.og_lng,
-            "date": None,
             "steps": episode.steps,
             "est_lat": 0,
             "est_lng": 0
@@ -71,7 +70,10 @@ class LogManager:
         for a in AMENITIES:
             record[a] = 0.0
 
-        # No hypotheses → nothing to log
+        # Set date to spawn node initially
+        record["date"] = episode.spawn_date
+        
+        # No hypotheses = nothing to log
         if not graph.hypotheses:
             return record
 
