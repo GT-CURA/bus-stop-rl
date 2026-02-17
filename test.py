@@ -18,9 +18,10 @@ from src.utils.logging import LogManager
 # Triggers point snapping: 33.936201,-84.337755
 # Stuck: (33.758338, -84.347739)
 # Shelter: 33.726259, -84.392056
+# Atlantic Station: 33.790669, -84.401482
 
-DEFAULT_LAT =  33.796298
-DEFAULT_LNG = -84.350309
+DEFAULT_LAT =  33.790669
+DEFAULT_LNG = -84.401482
 START_HEADING = 90
 
 # === Image Navigator Thread ===
@@ -56,7 +57,7 @@ def streetview_control():
         False)
     
     # Setup log manager
-    log_manager = LogManager(context, flush_every=2, flush_interval=10)
+    log_manager = LogManager(flush_every=2, flush_interval=10)
     print("\n[Street View Controls Ready]")
 
     while True:

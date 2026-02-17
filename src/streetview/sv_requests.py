@@ -59,7 +59,7 @@ class Reqs:
 
         # If no hit, pull from GSV 
         if img is None:
-            content = self.pull_img(pic)
+            content = self._request_image(pic)
             
             # Decode image 
             nparr = np.frombuffer(content, np.uint8)
@@ -76,7 +76,7 @@ class Reqs:
         return img
 
 
-    def pull_img(self, pic: Pic):
+    def _request_image(self, pic: Pic):
         # Increment usage count for current key
         self.usage_counts[self.key] += 1
         self._save_usage_counts()
