@@ -138,7 +138,7 @@ class Episode():
         )
 
         # Update guesses
-        self.graph.update_hypotheses(self.current_node, self.steps, action)
+        self.graph.update_hypotheses(self.current_node, self.steps)
 
         # See if this episode is finished
         done = False
