@@ -61,8 +61,8 @@ class LogManager:
             "name": episode.stop.place_name,
             "latitude": episode.stop.og_lat,
             "longitude": episode.stop.og_lng,
-            "date": None,
             "steps": episode.steps,
+            "found_step": None,
             "est_lat": 0,
             "est_lng": 0
         }
@@ -71,7 +71,10 @@ class LogManager:
         for a in AMENITIES:
             record[a] = 0.0
 
-        # No hypotheses → nothing to log
+        # Set date to spawn node initially
+        record["date"] = episode.spawn_date
+
+        # No hypotheses = nothing to log
         if not graph.hypotheses:
             return record
 
@@ -81,7 +84,7 @@ class LogManager:
         stop_panos = {d.pano_id for d in best_hyp.observations}
         expanded_panos = set(stop_panos)
 
-        # Include immediate neighbors (optional but recommended)
+        # Include immediate neighbors
         for pano_id in stop_panos:
             node = graph.graph.get(pano_id)
             if node:
@@ -122,6 +125,9 @@ class LogManager:
 
         # Record date from best hyp 
         record["date"] = best_date
+        
+        # Total number of steps - steps since found + 1 step for spawn + 1 step for next 
+        record["found_step"] = episode.steps - episode.steps_since_found + 2
 
         # Record estimated coords
         if best_hyp.triangulated_pos:
@@ -152,4 +158,4 @@ class LogManager:
 
     @staticmethod
     def _fieldnames():
-        return ["name", "latitude", "longitude", "date", "steps", "est_lat", "est_lng"] + AMENITIES
+        return ["name", "latitude", "longitude", "date", "steps", "found_step", "est_lat", "est_lng"] + AMENITIES

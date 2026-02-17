@@ -30,6 +30,9 @@ class Episode():
         # Build graph class
         self.graph = Graph(context)
 
+        # Register date of spawn imagery
+        self.spawn_date = pic.date
+        
         # Build current node
         self.current_node = self.graph.add_node(pic, False)
 
@@ -135,7 +138,7 @@ class Episode():
         )
 
         # Update guesses
-        self.graph.update_hypotheses(self.current_node, self.steps, action)
+        self.graph.update_hypotheses(self.current_node, self.steps)
 
         # See if this episode is finished
         done = False
