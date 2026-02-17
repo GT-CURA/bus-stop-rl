@@ -4,6 +4,8 @@ from src.streetview.sv import StreetView, Stop
 from src.utils.server.server import start_server
 from src.rl_env.episode import Episode
 from src.stop_detector import StopDetector
+from src.utils.context import  RoadContext
+from src.utils.logging import LogManager
 
 # Cobb PKWY: 33.903458, -84.487905
 # Downtown: 33.757545, -84.387770
@@ -17,7 +19,7 @@ from src.stop_detector import StopDetector
 # Stuck: (33.758338, -84.347739)
 # Shelter: 33.726259, -84.392056
 
-DEFAULT_LAT = 33.796298
+DEFAULT_LAT =  33.796298
 DEFAULT_LNG = -84.350309
 START_HEADING = 90
 
@@ -31,15 +33,19 @@ def get_vp(sv):
     vps.append(vp)
 
 def streetview_control():
-    sv = StreetView()
-    stop_detector = StopDetector(sv)
+    # Setup sttop and contexts
     stop = Stop(DEFAULT_LAT, DEFAULT_LNG, None, None, None, None)
+    context = RoadContext()
+    context.set_context(stop)
+
+    sv = StreetView(context)
+    stop_detector = StopDetector(sv, context)
     sv.goto_pt(stop)
     sv.set_start()
     img = sv.get_img()
 
     # Simulate getting initial features
-    ep = Episode(stop, stop_detector, sv.current_pic)
+    ep = Episode(stop_detector, context, stop, sv.current_pic)
     output = stop_detector.run(img)
     ep.get_features(img, output, sv.current_pic)
     stop_detector.score_output(
@@ -49,6 +55,8 @@ def streetview_control():
         0, 
         False)
     
+    # Setup log manager
+    log_manager = LogManager(context, flush_every=2, flush_interval=10)
     print("\n[Street View Controls Ready]")
 
     while True:
@@ -74,11 +82,14 @@ def streetview_control():
             elif keyboard.is_pressed("space"):
                 action = "space"
                 sv.goto_start()
-
+            elif keyboard.is_pressed("enter"):
+                action = "Next"
             if action:
                 print(f"Doing action: {action}")
-                if action != "space":
+                if action not in ("space", "Next"):
                     sv.do_action(action)
+                if action == "Next":
+                    log_manager.add(ep)
                 img = sv.get_img()
 
                 # Update episode

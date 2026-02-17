@@ -1,16 +1,16 @@
 import math
 import numpy as np
 from shapely.geometry import Point, LineString
-from pyproj import Transformer
 import osmnx as ox
 from settings import S
 from src.utils.objects import Pic
 from src.streetview.sv_requests import Reqs
+from src.utils.context import RoadContext
 
 EPS = 1e-6
 
 class Move:
-    def __init__(self, graph_cache, lat, lng, debug=False):
+    def __init__(self, graph_cache, road_context: RoadContext, lat, lng, debug=False):
         """
         - Builds an OSMnx drive graph around (lat, lng)
         - Keeps a cleaned, projected edges GeoDataFrame
@@ -19,28 +19,25 @@ class Move:
         self.debug = debug
         self.reqs = Reqs()
         self.pic_cache = {}
-        self.last_perp = None
         self.edges_gdf = None
         self.rebuilt = False
+        self.context = road_context
 
         # Build graph around starting location (WGS84: lat/lng)
         self.G_osm = self.cache.get_graph(lat, lng)
         self._clean_edges()
-
-        # CRS transformers
-        self.to_m = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
-        self.to_wgs = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
 
         # Hysteresis: remember last chosen edge index (tiny bias to keep going straight)
         self.last_edge_idx = None
 
     def _clean_edges(self):
         # Get nodes and edges
-        nodes_gdf, edges_gdf = ox.graph_to_gdfs(self.G_osm)
+        _, self.edges_gdf = ox.graph_to_gdfs(self.G_osm)
 
         # Project edges to metric so distances are in meters
-        edges_gdf = edges_gdf.to_crs(3857)
-        self.edges_gdf = edges_gdf.copy()
+        self.edges_gdf["geom_line"] = self.edges_gdf.geometry.apply(self.to_local)
+        self.edges_gdf = self.edges_gdf[self.edges_gdf["geom_line"].notnull()].copy()
+        self.edges_gdf.set_geometry("geom_line", inplace=True)
 
         # Clean geometries: keep longest valid LineString for each edge
         def longest_valid_line(geom):
@@ -85,9 +82,9 @@ class Move:
         """
         step_m = float(getattr(S, "dist", 10.0))
 
-        # 1) Convert current pano position from lon/lat to metric (x,y)
-        px, py = self.to_m.transform(pic.lng, pic.lat)
-        pt_m = Point(px, py)  # original world-space position in meters
+        # 1) Convert point to local coordinate plane
+        px, py = self.context.to_local.transform(pic.lng, pic.lat)
+        pt_m = Point(px, py)
 
         # 2) Build movement vector:
         #    - heading_vec = where the camera is looking
@@ -135,7 +132,7 @@ class Move:
 
         # 5) Compute the geometric new point along the segment
         new_pt_m = seg.interpolate(target)
-        lng_geom, lat_geom = self.to_wgs.transform(new_pt_m.x, new_pt_m.y)
+        lng_geom, lat_geom = self.context.to_global.transform(new_pt_m.x, new_pt_m.y)
 
         # 6) Ask street view at that *geometric* location
         last_pano = getattr(pic, "pano_id", None)
@@ -146,8 +143,9 @@ class Move:
         # (Google may snap it a few meters away).
 
         if candidate_pic and candidate_pic.pano_id != last_pano:
+
             # Recompute world direction from original position to pano location
-            cx, cy = self.to_m.transform(candidate_pic.lng, candidate_pic.lat)
+            cx, cy = self.context.to_local.transform(candidate_pic.lng, candidate_pic.lat)
             pano_pt = Point(cx, cy)
 
             vec_to_pano = np.array(
@@ -278,9 +276,14 @@ class Move:
             # Calc unit tangent 
             tangent /= n 
 
-            # For street side calculation
-            self.last_perp = (-tangent[1], tangent[0])
+            # Update road context
+            perp = np.array([-tangent[1], tangent[0]], dtype=float)
+            perp /= (np.linalg.norm(perp) + EPS)
 
+            self.context.perp = perp
+            self.context.tangent = tangent
+            self.context.segment = seg
+        
             # 3) Evaluate alignment of BOTH pos/neg tangent with movement_vec
             align_pos = float(np.dot(tangent, movement_vec))
             align_neg = float(np.dot(-tangent, movement_vec))
@@ -332,7 +335,7 @@ class Move:
         """
         Scan along the road network in the intended direction looking for
         the nearest different pano_id that is still consistent with the
-        movement_vec (which already encodes “forward or backward”).
+        movement_vec (which already encodes "forward or backward").
 
         - Walks along the starting edge in steps of `step_m`.
         - If stepping beyond that edge, hops once onto the best-aligned
@@ -469,7 +472,7 @@ class Move:
           - For each candidate pano returned by GSV:
               * Compute vector from original position to pano position.
               * Take dot product with movement_vec.
-              * Because movement_vec already encodes “forward vs backward”,
+              * Because movement_vec already encodes "forward vs backward",
                 we simply require dot > 0 to accept the pano
                 (it lies roughly in the intended movement direction).
 
@@ -502,7 +505,7 @@ class Move:
                 cand = Point(base.x + off * perp[0], base.y + off * perp[1])
 
             # Call GSV metadata at this candidate metric point
-            lng, lat = self.to_wgs.transform(cand.x, cand.y)
+            lng, lat = self.context.to_global.transform(cand.x, cand.y)
             tmp = self._get_pt_metadata(lat, lng, original_heading)
 
             # Cathc metadata failure
@@ -514,7 +517,7 @@ class Move:
                 continue
 
             # Direction check: compare original to pano vector with movement_vec
-            cx, cy = self.to_m.transform(tmp.lng, tmp.lat)
+            cx, cy = self.context.to_local.transform(tmp.lng, tmp.lat)
             pano_pt = Point(cx, cy)
             vec_to_pano = np.array(
                 [pano_pt.x - pt_origin.x, pano_pt.y - pt_origin.y],
@@ -570,7 +573,7 @@ class Move:
         """
         Return (x,y) of graph node in meters (EPSG:3857).
 
-        OSMnx stores nodes with 'x' (lon), 'y' (lat). We transform to metric
+        OSMnx stores nodes with 'x' (lon), 'y' (lat). We transform to local
         coordinates to be consistent with edge geometries.
         """
         data = self.G_osm.nodes[node]
@@ -578,12 +581,12 @@ class Move:
         lat = data.get("y", None)
         if lon is None or lat is None:
             raise RuntimeError("Node missing coordinates")
-        x, y = self.to_m.transform(lon, lat)
+        x, y = self.context.to_local.transform(lon, lat)
         return (x, y)
 
     def _heading_to_unitvec(self, heading_deg):
         """
-        Convert a compass heading (0° = north, 90° = east, etc.)
+        Convert a compass heading (0 deg = north, 90 deg = east, etc.)
         into a unit vector in metric XY coordinates.
 
         - We treat x as East, y as North (EPSG:3857 axes).
@@ -642,7 +645,7 @@ class Move:
         can be classified immediately.
         """
         # Current pos to metric
-        px, py = self.to_m.transform(pic.lng, pic.lat)
+        px, py = self.context.to_local.transform(pic.lng, pic.lat)
         pt_m = Point(px, py)
 
         # Compute a movement vec bc we have to
@@ -654,17 +657,13 @@ class Move:
         # Basically dry fire choose best edge so it will update last tangent and last perp.
         self._choose_best_edge(pt_m, movement_vec, candidates)
 
-    def get_road_vec(self):
-        """ Used to determine street side of a detection. """
-        return self.last_perp
-    
     def snap_pt(self, lat, lng):
         """ Snap onto nearest road if not nearby. """
         max_search_dist=50.0
         on_road_tol=15
 
         # Convert to metric
-        x, y = self.to_m.transform(lng, lat)
+        x, y = self.context.to_local.transform(lng, lat)
         pt_m = Point(x, y)
 
         # Find nearby edges
@@ -697,6 +696,28 @@ class Move:
             return None
 
         # Snap to closest road
-        lng2, lat2 = self.to_wgs.transform(best_proj_pt.x, best_proj_pt.y)
+        lng2, lat2 = self.context.to_global.transform(best_proj_pt.x, best_proj_pt.y)
         print("[Move] Snapped spawn point to nearby street.")
         return lat2, lng2
+    
+    def to_local(self, geom):
+        """Converts geometry into local coord plane"""
+
+        if geom is None:
+            return None
+        if geom.geom_type == "LineString":
+            coords = [
+                self.context.to_local.transform(lon, lat)
+                for lon, lat in geom.coords
+            ]
+            return type(geom)(coords)
+        if geom.geom_type == "MultiLineString":
+            lines = []
+            for g in geom.geoms:
+                coords = [
+                    self.context.to_local.transform(lon, lat)
+                    for lon, lat in g.coords
+                ]
+                lines.append(type(g)(coords))
+            return type(geom)(lines)
+        return None

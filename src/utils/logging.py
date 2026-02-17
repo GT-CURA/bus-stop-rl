@@ -3,7 +3,6 @@ import threading
 import time
 import csv
 from settings import S
-from src.utils.tools import globalize_coords
 
 AMENITIES = ["sign", "shelter", "trash can", "seating"]
 
@@ -126,8 +125,8 @@ class LogManager:
 
         # Record estimated coords
         if best_hyp.triangulated_pos:
-            hyp_x, hyp_y = best_hyp.triangulated_pos 
-            est_lat, est_lng = globalize_coords(hyp_x, hyp_y, episode.initial_lat, episode.initial_lng)
+            hyp_x, hyp_y = best_hyp.triangulated_pos
+            est_lng, est_lat = episode.context.to_global.transform(hyp_x, hyp_y)
             record["est_lat"] = est_lat
             record["est_lng"] = est_lng
         return record

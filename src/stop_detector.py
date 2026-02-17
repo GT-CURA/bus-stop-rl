@@ -6,17 +6,20 @@ import numpy as np
 from src.rl_env.graph import Node
 from src.utils.objects import Detection, Pic 
 from src.streetview.sv import StreetView
-from src.utils.tools import localize_coords
+from src.utils.context import RoadContext
+
 # A wrapper for the YOLO model trained to detect stops
 class StopDetector:
 
-    def __init__(self, sv: StreetView):
+    def __init__(self, sv: StreetView, context: RoadContext):
         self.model = YOLO(S.yolo_path)
         self.sv = sv
+        self.context = context
+        self.verbose = S.yolo_msgs
 
     def run(self, img):
         # Run model
-        output = self.model(img)[0]
+        output = self.model(img, verbose=self.verbose)[0]
 
         # Save output
         if S.run_server: output.save('src/utils/server/static/frame.jpg')
@@ -26,10 +29,6 @@ class StopDetector:
         # No boxes
         if len(output.boxes) == 0: 
             return 0.0, False
-
-        # Get initial coords 
-        initial_lat = self.sv.start_state["lat"]
-        initial_lng = self.sv.start_state["lng"]
 
         # Scores to be calculated
         primary_score = 0.0
@@ -51,8 +50,8 @@ class StopDetector:
             delta_deg = (box_center -.5) * 90
             bearing = (pic.heading + delta_deg) % 360
 
-            # Localize coords 
-            local_x, local_y = localize_coords(pic.lat, pic.lng, initial_lat, initial_lng)
+            # Localize coords
+            local_x, local_y = self.context.to_local.transform(pic.lng, pic.lat)
 
             # Build detection, add to node
             det = Detection(
@@ -117,7 +116,8 @@ class StopDetector:
         if primary_score > node.best_conf:
             node.best_conf = primary_score
             node.best_bearing = best_bearing
-        print(f"Raw primary: {primary_score} | Raw secondary: {secondary_score} | Raw Total: {total_score}")
+        if S.msg_score_breakdown:
+            print(f"Raw primary: {primary_score} | Raw secondary: {secondary_score} | Raw Total: {total_score}")
         return min(total_score, 1.0), found
     
     def extract_features(self, img, output):

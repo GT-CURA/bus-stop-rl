@@ -1,8 +1,7 @@
 class S: 
     """ Streetview Properties """
     key_path = "keys.txt"               # Change to your API key location
-    run_server = True                   # Launch webserver, allowing you to view the program in action
-    request_msgs = False                # Send messages on start and completion of requests
+    run_server = True                   # Launch webserver, allowing you to view the program in action=
     max_retries = 5                     # Max number of retries for a failed request
     wait_time = 0                       # Wait time in seconds between steps
     img_height = 640                    # Height of images requested from streetview
@@ -11,8 +10,8 @@ class S:
     pic_caching = False                 # Save images for later reuse
     
     """ Stop Loader Properties """
-    shuffle_stops = False                # Randomly shuffle stops
-    scramble_stops = False               # Randomly move around if stop is visible upon loading
+    shuffle_stops = True                # Randomly shuffle stops
+    scramble_stops = False              # Randomly move around if stop is visible upon loading
     before_scrambling = -1              # How many stops to load before starting to scramble stops
     min_score_to_scramble = 0.5         # If best evidence of a stop exceeds this, scramble the stop
     loop_stops = True                   # Loop back to the beginning if we run out of stops
@@ -62,13 +61,16 @@ class S:
     annotate_best_img = False           # Run YOLO model to annotate saved imgs?
     save_folder = "runs"                # Path to save logs and imgs into  
 
+    """ Console Msgs """
+    msg_score_breakdown = False         # Show spatial scoring elements
+    request_msgs = False                # Send messages on start and completion of requests
+    yolo_msgs = False                   # Show console output from YOLO model
 
     """ YOLO Properties"""
     num_classes = 4                     # Number of classes in YOLO model
     yolo_path = "assets/YOLO.pt"        # Path to YOLO model 
     secondary_prefound = .25            # How much of the secondary amenities' scores are kept before finding
     primary_found = .5                  # How much of primary amenities' scores are kept after finding
-
 
     """ API Settings """
     rotate_amt = 45                     # Amount camera angle is changed by on horizontal movement

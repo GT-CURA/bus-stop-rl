@@ -77,13 +77,17 @@ class StopLoader:
         # Retrieve next stop
         if not stop:
             stop = self.stops[self.index]
-
+        
+        self.num_loaded += 1
+        self.index += 1
+        return stop 
+    
+    def goto_stop(self, stop: Stop):
         # Build point, try to navigate to it
-        loaded = self.sv.goto_pt(stop)
+        spawned = self.sv.goto_pt(stop)
 
         # If we couldn't load the stop, re-run function
-        if not loaded:
-            self.index += 1
+        if not spawned:
             return self.load_stop()
 
         # After 150 stops, if stop is a positive, scramble
@@ -99,9 +103,7 @@ class StopLoader:
                     self.scramble_positive()
 
         # Tell SV to log initial position
-        self.index += 1
         self.sv.set_start()
-        self.num_loaded += 1
         return stop
 
     """ WIP way to use positive stops to train """

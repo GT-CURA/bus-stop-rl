@@ -11,17 +11,19 @@ from src.rl_env.env import StreetViewEnv
 from src.streetview.sv import StreetView
 from src.utils.loader import StopLoader
 from src.utils.server.server import start_server
+from src.utils.context import RoadContext
 
 def make_env(path: str, ignore_path: str = None):
     # Create streetview and loader
-    sv = StreetView()
+    context = RoadContext()
+    sv = StreetView(context)
     stop_loader = StopLoader(sv)
 
     # Load stops, launch SV
     stop_loader.load_stops(path, ignore_path)
 
-    # Pass YOLO to loader :(
-    env = StreetViewEnv(sv, stop_loader)
+    #  Create streetview object
+    env = StreetViewEnv(sv, stop_loader, context)
     stop_loader.stop_detector = env.stop_detector
     return env, len(stop_loader.stops)
 
@@ -105,5 +107,5 @@ if __name__ == "__main__":
         start_server(port=5000)
         
     # Run training/inference loop here!
-    # train("weights/PPO", "assets/all_val.csv", "weights/1265664")
-    infer("assets/all_val.csv", "weights/1265664")
+    train("weights/PPO", "assets/all_val.csv", "weights/1265664")
+    # infer("assets/all_val.csv", "weights/1265664")

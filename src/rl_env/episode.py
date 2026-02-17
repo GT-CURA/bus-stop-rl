@@ -3,10 +3,11 @@ import numpy as np
 from settings import S
 from src.rl_env.graph import Graph
 from src.utils.tools import haversine
+from src.utils.context import RoadContext
 import cv2 
 
 class Episode():
-    def __init__(self, stop, stop_detector: StopDetector, pic):
+    def __init__(self, stop_detector: StopDetector, context: RoadContext, stop, pic):
         self.reward = 0.0
         self.steps = 0
         self.found = False
@@ -23,8 +24,11 @@ class Episode():
         # Determine geo info
         self.initial_lat, self.initial_lng, self.initial_heading = pic.lat, pic.lng, pic.heading
 
+        # Setup context for this stop
+        self.context = context
+
         # Build graph class
-        self.graph = Graph(self.initial_lat, self.initial_lng)
+        self.graph = Graph(context)
 
         # Build current node
         self.current_node = self.graph.add_node(pic, False)
@@ -40,6 +44,9 @@ class Episode():
             "Zoom":None
         }
         self.prev_action = None
+
+        # Announce new stop to console
+        self.announce_reset()
 
     def get_features(self, img, output, pic):
         # Get features, bb info from stop detector
@@ -153,7 +160,7 @@ class Episode():
         self.reward += reward 
 
         # Announce results to console 
-        self.announce(action, reward)
+        self.announce_step(action, reward)
         return features, reward, done
     
     def check_done(self, found):
@@ -266,13 +273,17 @@ class Episode():
         final_reward = np.clip(reward, -.5, .5)
         
         # Announce 
-        print(f"Graph reward: {graph_rwd} | Direction reward: {direction_rwd} | Coord Reward: {coord_rwd}")
+        if S.msg_score_breakdown:
+            print(f"Graph reward: {graph_rwd} | Direction reward: {direction_rwd} | Coord Reward: {coord_rwd}")
         return final_reward, done
     
-    def announce(self, key, reward):
+    def announce_reset(self):
+        print("\n\n\n\n\n\n", "="*12, f"[STOP LOADED]","="*12)
+        print(f"Spawn point ({self.stop.og_lat}, {self.stop.og_lng})")
+        print(f"Stop ID {self.stop.place_name}")
+
+    def announce_step(self, key, reward):
         """ Print stop info and action to console at each step. """
-        name = self.stop.place_name
-        lat = self.stop.og_lat
-        lng = self.stop.og_lng
-        print(f"[Step {self.steps}] Action: '{key}' | Reward: {reward:.3f} | Steps Since Found: {self.steps_since_found}")
-        print(f"Stop: {name} ({lat}, {lng})")
+        print("\n\n", "="*15, f"[STEP {self.steps}]","="*15)
+        print(f"Action: {key} \nReward: {reward:.3f} \nSteps Since Found: {self.steps_since_found}")
+        print(f"Stop: {self.stop.place_name} ({self.stop.og_lat}, {self.stop.og_lng})")
