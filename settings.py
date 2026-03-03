@@ -69,7 +69,7 @@ class S:
 
     """ YOLO Properties"""
     num_classes = 4                     # Number of classes in YOLO model
-    yolo_path = "assets/YOLO.pt"        # Path to YOLO model 
+    yolo_path = "assets/YOLO_medium.pt" # Path to YOLO model 
     secondary_prefound = .25            # How much of the secondary amenities' scores are kept before finding
     primary_found = .5                  # How much of primary amenities' scores are kept after finding
 
