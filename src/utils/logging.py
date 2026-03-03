@@ -139,8 +139,25 @@ class LogManager:
         # Set date to spawn node initially
         record["date"] = episode.spawn_date
 
-        # No hypotheses = nothing to log
+        # No hypotheses, log highest scoring detections
         if not graph.hypotheses:
+            best_det = {}
+            for node in graph.graph.values():
+                for det in node.detections:
+                    if det.label not in best_det or det.primary_conf > best_det[det.label].primary_conf:
+                        best_det[det.label] = det
+
+            best_date = None
+            best_conf_overall = -1.0
+            for label, det in best_det.items():
+                record[label] = round(float(det.primary_conf), 3)
+                if det.primary_conf > best_conf_overall:
+                    best_conf_overall = det.primary_conf
+                    best_date = getattr(det, "date", None)
+
+            if best_date:
+                record["date"] = best_date
+
             return record
 
         # Best hypothesis = stop identity

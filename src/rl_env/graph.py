@@ -290,7 +290,10 @@ class Graph:
             return
 
         for det in frame_dets:
-
+            # Skip if secondary amenity
+            if det.label not in ["sign", "shelter"]:
+                continue 
+            
             # Ensure detection's conf meets threshold
             if det.primary_conf < self.conf_threshold:
                 continue
