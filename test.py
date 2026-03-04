@@ -20,8 +20,8 @@ from src.utils.logging import LogManager
 # Shelter: 33.726259, -84.392056
 # Atlantic Station: 33.790669, -84.401482
 
-DEFAULT_LAT =  33.790669
-DEFAULT_LNG = -84.401482
+DEFAULT_LAT =  33.726259
+DEFAULT_LNG = -84.392056
 START_HEADING = 90
 
 # === Image Navigator Thread ===

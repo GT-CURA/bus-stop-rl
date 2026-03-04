@@ -1,6 +1,7 @@
 from settings import S
 import numpy as np
 import math
+from shapely import LineString, Point
 from src.streetview.move import Move
 from src.utils.objects import Stop, Pic
 from src.streetview.sv_requests import Reqs
@@ -158,30 +159,31 @@ class StreetView:
         pic.heading = heading
 
     def calc_street_side(self, det):
-
-        # Get road vectors
-        perp = self.road_context.perp
-
-        # NOTE: Fix this 
-        if perp is None: 
+        seg = self.road_context.segment
+        
+        if seg is None:
             det.side = "right"
-            return 
+            return
 
-        # Camera's location 
-        cam_x, cam_y = det.local_x, det.local_y
-
-        # Convert bearing to world-space direction vector where 0 degress is north
+        # Estimated object position
         theta = np.radians(det.bearing)
         dir_vec = np.array([np.sin(theta), np.cos(theta)])
+        obj_x = det.local_x + 20 * dir_vec[0]
+        obj_y = det.local_y + 20 * dir_vec[1]
 
-        # Estimate object XY just to differentiate from objects on other side of the road
-        obj_x = cam_x + 20 * dir_vec[0]
-        obj_y = cam_y + 20 * dir_vec[1]
+        # Project object onto the current road segment, get nearest point
+        obj_pt = Point(obj_x, obj_y)
+        proj = seg.project(obj_pt)
+        on_road = seg.interpolate(proj)
 
-        # Vector to object
-        to_obj = np.array([obj_x - cam_x, obj_y - cam_y])
-        to_obj /= (np.linalg.norm(to_obj) + 1e-9)
+        # Tangent at that projection point
+        eps = min(1.0, seg.length * 0.01)
+        ahead = seg.interpolate(min(proj + eps, seg.length))
+        behind = seg.interpolate(max(proj - eps, 0.0))
+        tangent = np.array([ahead.x - behind.x, ahead.y - behind.y], float)
+        tangent /= (np.linalg.norm(tangent) + 1e-9)
 
-        # Classify side
-        side_value = np.dot(to_obj, perp)
-        det.side = "left" if side_value > 0 else "right"
+        # Signed cross product against vector from road to object
+        to_obj = np.array([obj_x - on_road.x, obj_y - on_road.y], float)
+        cross = tangent[0] * to_obj[1] - tangent[1] * to_obj[0]
+        det.side = "left" if cross > 0 else "right"

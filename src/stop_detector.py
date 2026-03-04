@@ -13,17 +13,24 @@ class StopDetector:
 
     def __init__(self, sv: StreetView, context: RoadContext):
         self.model = YOLO(S.yolo_path)
+        self.use_medium = S.use_medium
+        self.run_server = S.run_server
+        if self.use_medium:
+            self.med_model = YOLO("assets/YOLO_medium.pt")
         self.sv = sv
         self.context = context
         self.verbose = S.yolo_msgs
 
     def run(self, img):
-        # Run model
-        output = self.model(img, verbose=self.verbose)[0]
+            # Run model
+            if self.use_medium:
+                output = self.med_model(img, verbose=self.verbose)[0]
+            else:
+                output = self.model(img, verbose=self.verbose)[0]
 
-        # Save output
-        if S.run_server: output.save('src/utils/server/static/frame.jpg')
-        return output
+            # Save output
+            if self.run_server: output.save('src/utils/server/static/frame.jpg')
+            return output
 
     def score_output(self, output, node: Node, pic: Pic, step, found_prev: bool):
         # No boxes
