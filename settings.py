@@ -72,6 +72,7 @@ class S:
     yolo_path = "assets/YOLO.pt"        # Path to YOLO model 
     secondary_prefound = .25            # How much of the secondary amenities' scores are kept before finding
     primary_found = .5                  # How much of primary amenities' scores are kept after finding
+    use_medium = True                   # Use the larger YOLO model. Slower but greater precision.
 
     """ API Settings """
     rotate_amt = 45                     # Amount camera angle is changed by on horizontal movement
